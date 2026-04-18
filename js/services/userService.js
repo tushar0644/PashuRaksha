@@ -54,13 +54,16 @@ class UserService {
       if (!user) throw new Error("Not logged in");
 
       // Update auth metadata
-      const { error: authError } = await this.supabase.auth.updateUser({
+      const { data: authData, error: authError } = await this.supabase.auth.updateUser({
         data: { 
           full_name: updates.full_name,
           phone: updates.phone
         }
       });
       if (authError) throw authError;
+
+      // Force session refresh so getUser() gets the new metadata immediately
+      await this.supabase.auth.refreshSession();
 
       // Upsert farm data
       const { error: farmError } = await this.supabase

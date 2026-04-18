@@ -1010,9 +1010,17 @@ window.openEditProfileModal = async function() {
     
     if (res) {
       document.getElementById('modal-container').innerHTML = '';
-      // Refresh Profile view
-      if(document.querySelector('.nav-item.active').dataset.view === 'profile') {
-        document.querySelector('[data-view="profile"]').click();
+      
+      // Instantly update sidebar UI for a snappy feel
+      const sidebarUser = document.getElementById('sidebar-user-name');
+      const sidebarFarm = document.getElementById('sidebar-farm-name');
+      if(sidebarUser) sidebarUser.textContent = data.full_name;
+      if(sidebarFarm) sidebarFarm.textContent = data.farm_name;
+
+      // Refresh the main container if we're on the profile view
+      const activeNav = document.querySelector('.nav-item.active');
+      if(activeNav && activeNav.dataset.view === 'profile') {
+        activeNav.click(); // Triggers a fresh render
       }
     } else {
       btn.innerHTML = originalText;
