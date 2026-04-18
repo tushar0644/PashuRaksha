@@ -446,6 +446,176 @@ function renderReports(container) {
 }
 
 // Global modal function
-window.openAddTreatmentModal = function() {
-  alert('In a real app, this would open a dynamic form to log medicine, dosage, and auto-start the withdrawal timer.');
+window.openAddTreatmentModal = async function() {
+  const container = document.getElementById('modal-container');
+  
+  // Show loading state first
+  container.innerHTML = `
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 fade-in">
+      <div class="bg-white rounded-2xl shadow-xl p-8 m-4 flex justify-center items-center">
+        <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-primary"></i>
+      </div>
+    </div>
+  `;
+  if(window.lucide) window.lucide.createIcons();
+
+  // Fetch data
+  const animals = await window.animalService.getAnimals();
+  const medicines = window.mockData ? window.mockData.medicines : [];
+
+  if (!animals || animals.length === 0) {
+    container.innerHTML = `
+      <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 fade-in">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 m-4 relative text-center">
+          <div class="mx-auto w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+            <i data-lucide="alert-circle" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">No Animals Found</h3>
+          <p class="text-gray-500 mb-6">You need to add an animal to your registry before logging a treatment.</p>
+          <div class="flex justify-center space-x-3">
+            <button onclick="document.getElementById('modal-container').innerHTML=''" class="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
+            <button onclick="document.getElementById('modal-container').innerHTML=''; document.querySelector('[data-view=\\'animals\\']').click();" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-sm transition-colors">Add Animal First</button>
+          </div>
+        </div>
+      </div>
+    `;
+    if(window.lucide) window.lucide.createIcons();
+    return;
+  }
+
+  let animalOptions = animals.map(a => `<option value="${a.id}">${a.animal_tag || a.id} - ${a.breed}</option>`).join('');
+  let medicineOptions = medicines.map(m => `<option value="${m.name}">${m.name} (${m.category})</option>`).join('');
+
+  container.innerHTML = `
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-start z-50 fade-in overflow-y-auto pt-10 pb-10">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8 m-4 relative mt-10">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="bg-emerald-50 text-primary p-2 rounded-lg">
+              <i data-lucide="syringe" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800 brand-font">Log Treatment</h2>
+              <p class="text-sm text-gray-500 mt-1">Record medicine, dosage, and start withdrawal tracking.</p>
+            </div>
+          </div>
+          <button onclick="document.getElementById('modal-container').innerHTML=''" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <form id="treatment-form" class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Select Animal <span class="text-red-500">*</span></label>
+              <select id="trt-animal" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+                <option value="" disabled selected>Search or select an animal...</option>
+                ${animalOptions}
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Disease / Condition</label>
+              <input type="text" id="trt-disease" placeholder="e.g. Mastitis" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Medicine Name <span class="text-red-500">*</span></label>
+              <select id="trt-medicine" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+                <option value="" disabled selected>Choose medicine</option>
+                ${medicineOptions}
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Dosage <span class="text-red-500">*</span></label>
+              <input type="text" id="trt-dosage" required placeholder="e.g. 15ml" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Route</label>
+              <select id="trt-route" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+                <option value="Injection (IM)">Injection (IM)</option>
+                <option value="Injection (SC)">Injection (SC)</option>
+                <option value="Oral">Oral</option>
+                <option value="Topical">Topical</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date <span class="text-red-500">*</span></label>
+              <input type="date" id="trt-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Prescribed By</label>
+              <input type="text" id="trt-vet" placeholder="Dr. Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Instructions</label>
+            <textarea id="trt-notes" rows="3" placeholder="Additional treatment notes..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"></textarea>
+          </div>
+
+          <div class="pt-5 flex justify-end space-x-3 border-t border-gray-100 mt-6">
+            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="px-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
+            <button type="submit" id="trt-submit" class="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-md transition-all flex items-center hover:-translate-y-0.5">
+              <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+              <span>Save Treatment</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  if(window.lucide) window.lucide.createIcons();
+  
+  // Set default date
+  document.getElementById('trt-date').valueAsDate = new Date();
+
+  // Handle form submission
+  document.getElementById('treatment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const btn = document.getElementById('trt-submit');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
+    btn.disabled = true;
+    btn.classList.add('opacity-75', 'cursor-not-allowed');
+    if(window.lucide) window.lucide.createIcons();
+
+    // Map data to schema
+    const data = {
+      animalId: document.getElementById('trt-animal').options[document.getElementById('trt-animal').selectedIndex].text.split(' - ')[0],
+      medicine: document.getElementById('trt-medicine').value,
+      disease: document.getElementById('trt-disease').value,
+      dose: document.getElementById('trt-dosage').value,
+      route: document.getElementById('trt-route').value,
+      date: document.getElementById('trt-date').value,
+      vet: document.getElementById('trt-vet').value,
+      notes: document.getElementById('trt-notes').value
+    };
+
+    // Use Supabase Service if active, otherwise fallback inside the service handles mockData insertion
+    const res = await window.treatmentService.addTreatment(data); 
+    
+    if (res || window.mockData) {
+      if(window.mockData && !res) {
+          window.mockData.treatments.unshift(data);
+      }
+      document.getElementById('modal-container').innerHTML = '';
+      
+      // Navigate to treatments view to refresh UI and Dashboard calculations
+      const activeNav = document.querySelector('.nav-item.active').dataset.view;
+      document.querySelector(`[data-view="${activeNav}"]`).click(); // Reload current view
+      
+      // We don't need to manually show toast here because addTreatment service handles it
+    } else {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      btn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+  });
 };
