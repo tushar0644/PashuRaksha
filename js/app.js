@@ -277,11 +277,17 @@ async function renderAnimals(container) {
 
   container.innerHTML = `
     <div class="glass-panel overflow-hidden slide-up">
-      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-4">
         <h3 class="text-lg font-bold text-gray-800 brand-font">Herd Overview</h3>
-        <div class="relative">
-          <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
-          <input type="text" placeholder="Search by Tag ID..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+        <div class="flex items-center space-x-3 w-full md:w-auto">
+          <div class="relative flex-grow">
+            <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+            <input type="text" placeholder="Search by Tag ID..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+          </div>
+          <button onclick="openAddAnimalModal()" class="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center space-x-2 whitespace-nowrap">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Animal</span>
+          </button>
         </div>
       </div>
       <div class="overflow-x-auto">
@@ -612,6 +618,117 @@ window.openAddTreatmentModal = async function() {
       document.querySelector(`[data-view="${activeNav}"]`).click(); // Reload current view
       
       // We don't need to manually show toast here because addTreatment service handles it
+    } else {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      btn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+  });
+};
+
+window.openAddAnimalModal = function() {
+  const container = document.getElementById('modal-container');
+  
+  container.innerHTML = `
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-start z-50 fade-in overflow-y-auto pt-10 pb-10">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 m-4 relative mt-10">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="bg-emerald-50 text-primary p-2 rounded-lg">
+              <i data-lucide="paw-print" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800 brand-font">Add New Animal</h2>
+              <p class="text-sm text-gray-500 mt-1">Register livestock to your farm.</p>
+            </div>
+          </div>
+          <button onclick="document.getElementById('modal-container').innerHTML=''" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <form id="animal-form" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Animal ID / Tag <span class="text-red-500">*</span></label>
+              <input type="text" id="anm-id" required placeholder="e.g. TAG-106" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
+              <input type="text" id="anm-breed" placeholder="e.g. Holstein" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Age</label>
+              <input type="text" id="anm-age" placeholder="e.g. 2 years" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+              <input type="text" id="anm-weight" placeholder="e.g. 500kg" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Health Status</label>
+            <select id="anm-status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+              <option value="Healthy">Healthy</option>
+              <option value="Observation">Observation</option>
+              <option value="Under Treatment">Under Treatment</option>
+            </select>
+          </div>
+
+          <div class="pt-5 flex justify-end space-x-3 border-t border-gray-100 mt-6">
+            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="px-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
+            <button type="submit" id="anm-submit" class="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-md transition-all flex items-center hover:-translate-y-0.5">
+              <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+              <span>Register Animal</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  if(window.lucide) window.lucide.createIcons();
+
+  document.getElementById('animal-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const btn = document.getElementById('anm-submit');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
+    btn.disabled = true;
+    btn.classList.add('opacity-75', 'cursor-not-allowed');
+    if(window.lucide) window.lucide.createIcons();
+
+    const data = {
+      animal_tag: document.getElementById('anm-id').value,
+      breed: document.getElementById('anm-breed').value,
+      age: document.getElementById('anm-age').value,
+      weight: document.getElementById('anm-weight').value,
+      status: document.getElementById('anm-status').value,
+      lastCheck: new Date().toLocaleDateString() // For mock mapping
+    };
+    
+    const mockMappedData = {
+      id: data.animal_tag,
+      breed: data.breed,
+      age: data.age,
+      weight: data.weight,
+      status: data.status,
+      lastCheck: data.lastCheck
+    };
+
+    const res = await window.animalService.addAnimal(data); 
+    
+    if (res || window.mockData) {
+      if(window.mockData && !res) {
+          window.mockData.animals.push(mockMappedData);
+      }
+      document.getElementById('modal-container').innerHTML = '';
+      
+      const activeNav = document.querySelector('.nav-item.active').dataset.view;
+      document.querySelector(`[data-view="${activeNav}"]`).click();
     } else {
       btn.innerHTML = originalText;
       btn.disabled = false;
