@@ -25,20 +25,54 @@ class AnimalService {
   }
 
   async addAnimal(animalData) {
+    // 10-second timeout utility
+    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out (10s)')), ms));
+
     try {
-      // Assuming RLS automatically attaches user_id/farm_id if configured, 
-      // or we must provide it.
-      const { data, error } = await this.supabase
+      // Verify session
+      const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+      if (sessionError || !session) throw new Error("You must be logged in to add an animal.");
+
+      // Fetch logged-in user's farm_id
+      const { data: farmData, error: farmError } = await this.supabase
+        .from('farms')
+        .select('id')
+        .eq('owner_id', session.user.id)
+        .single();
+        
+      if (farmError || !farmData) {
+        throw new Error("Could not find your farm profile. Please set it up in your Profile first.");
+      }
+
+      // Exact fields only
+      const payload = {
+        farm_id: farmData.id,
+        animal_tag: animalData.animal_tag,
+        breed: animalData.breed || null,
+        age: animalData.age || null,
+        weight: animalData.weight || null,
+        health_status: animalData.health_status || animalData.status || 'Healthy'
+      };
+
+      console.log('Sending insert to Supabase:', payload);
+
+      const insertPromise = this.supabase
         .from(this.table)
-        .insert([animalData])
+        .insert([payload])
         .select();
 
+      const { data, error } = await Promise.race([
+        insertPromise,
+        timeout(10000)
+      ]);
+
       if (error) throw error;
-      window.showToast('Animal registered successfully!', 'success');
+      
+      console.log('Supabase Insert Successful:', data);
       return data[0];
     } catch (error) {
-      window.showToast('Failed to add animal: ' + error.message, 'error');
-      return null;
+      console.error('Supabase Error:', error);
+      throw error; // Throw so app.js can catch and display toast
     }
   }
 

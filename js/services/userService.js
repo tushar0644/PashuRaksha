@@ -31,7 +31,7 @@ class UserService {
         const { data: farmData, error } = await this.supabase
           .from(this.table)
           .select('*')
-          .eq('user_id', user.id)
+          .eq('owner_id', user.id)
           .single();
 
         if (farmData && !error) {
@@ -66,18 +66,18 @@ class UserService {
       const { error: farmError } = await this.supabase
         .from(this.table)
         .upsert({
-          user_id: user.id,
+          owner_id: user.id,
           farm_name: updates.farm_name,
           village: updates.village,
           district: updates.district,
           state: updates.state
-        });
+        }, { onConflict: 'owner_id' });
         
       if (farmError && farmError.code !== '42P01') { // Ignore if table doesn't exist for MVP
         throw farmError;
       }
 
-      window.showToast('Profile updated successfully!', 'success');
+      window.showToast('Profile updated successfully', 'success');
       return true;
     } catch (e) {
       console.error(e);

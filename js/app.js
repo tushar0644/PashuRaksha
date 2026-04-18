@@ -870,43 +870,55 @@ window.openAddAnimalModal = function() {
     
     const btn = document.getElementById('anm-submit');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
-    btn.disabled = true;
-    btn.classList.add('opacity-75', 'cursor-not-allowed');
-    if(window.lucide) window.lucide.createIcons();
-
-    const data = {
-      animal_tag: document.getElementById('anm-id').value,
-      breed: document.getElementById('anm-breed').value,
-      age: document.getElementById('anm-age').value,
-      weight: document.getElementById('anm-weight').value,
-      status: document.getElementById('anm-status').value,
-      lastCheck: window.formatDateForDB(new Date()) 
-    };
     
-    const mockMappedData = {
-      id: data.animal_tag,
-      breed: data.breed,
-      age: data.age,
-      weight: data.weight,
-      status: data.status,
-      lastCheck: data.lastCheck
-    };
+    try {
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
+      btn.disabled = true;
+      btn.classList.add('opacity-75', 'cursor-not-allowed');
+      if(window.lucide) window.lucide.createIcons();
 
-    const res = await window.animalService.addAnimal(data); 
-    
-    if (res || window.mockData) {
-      if(window.mockData && !res) {
-          window.mockData.animals.push(mockMappedData);
-      }
-      document.getElementById('modal-container').innerHTML = '';
+      const data = {
+        animal_tag: document.getElementById('anm-id').value,
+        breed: document.getElementById('anm-breed').value,
+        age: document.getElementById('anm-age').value,
+        weight: document.getElementById('anm-weight').value,
+        status: document.getElementById('anm-status').value,
+        lastCheck: window.formatDateForDB(new Date()) 
+      };
       
-      const activeNav = document.querySelector('.nav-item.active').dataset.view;
-      document.querySelector(`[data-view="${activeNav}"]`).click();
-    } else {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-      btn.classList.remove('opacity-75', 'cursor-not-allowed');
+      const mockMappedData = {
+        id: data.animal_tag,
+        breed: data.breed,
+        age: data.age,
+        weight: data.weight,
+        status: data.status,
+        lastCheck: data.lastCheck
+      };
+
+      const res = await window.animalService.addAnimal(data); 
+      
+      if (res || window.mockData) {
+        if(window.mockData && !res) {
+            window.mockData.animals.push(mockMappedData);
+            window.showToast('Animal added to local data successfully!', 'success');
+        } else {
+            window.showToast('Animal added successfully!', 'success');
+        }
+        document.getElementById('modal-container').innerHTML = '';
+        
+        const activeNav = document.querySelector('.nav-item.active');
+        if(activeNav) {
+          document.querySelector(`[data-view="${activeNav.dataset.view}"]`).click();
+        }
+      }
+    } catch (error) {
+      window.showToast(error.message || 'An error occurred while saving', 'error');
+    } finally {
+      if (document.getElementById('anm-submit')) {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+      }
     }
   });
 };
