@@ -269,14 +269,20 @@ async function renderDashboard(container) {
 async function renderAnimals(container) {
   const animals = await window.animalService.getAnimals();
 
-  let rows = animals.map(a => `
+  let rows = animals.map(a => {
+      const rawStatus = a.health_status || a.status || 'healthy';
+      const formattedStatus = rawStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const statusColor = rawStatus.toLowerCase() === 'healthy' ? 'status-safe' 
+                        : (rawStatus.toLowerCase() === 'observation' ? 'status-warning' : 'status-danger');
+
+      return `
     <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
       <td class="py-4 px-6 font-medium text-gray-900">${a.animal_tag || a.id}</td>
       <td class="py-4 px-6 text-gray-600">${a.breed}</td>
       <td class="py-4 px-6 text-gray-600">${a.age || a.weight}</td>
       <td class="py-4 px-6">
-        <span class="status-pill ${a.status === 'Healthy' ? 'status-safe' : (a.status === 'Observation' ? 'status-warning' : 'status-danger')}">
-          ${a.status || 'Healthy'}
+        <span class="status-pill ${statusColor}">
+          ${formattedStatus}
         </span>
       </td>
       <td class="py-4 px-6 text-gray-500 text-sm">${a.lastCheck || new Date(a.created_at).toLocaleDateString() || 'N/A'}</td>
@@ -289,7 +295,7 @@ async function renderAnimals(container) {
         </button>
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 
   container.innerHTML = `
     <div class="glass-panel overflow-hidden slide-up">
@@ -534,7 +540,7 @@ async function renderProfile(container) {
               <div class="w-10 h-10 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-2">
                 <i data-lucide="activity" class="w-5 h-5"></i>
               </div>
-              <p class="text-2xl font-bold text-gray-800">${animals.filter(a => a.status==='Healthy').length || 0}</p>
+              <p class="text-2xl font-bold text-gray-800">${animals.filter(a => (a.health_status || a.status || '').toLowerCase() === 'healthy').length || 0}</p>
               <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Healthy</p>
             </div>
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
@@ -852,9 +858,9 @@ window.openAddAnimalModal = function() {
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Health Status</label>
             <select id="anm-status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
-              <option value="Healthy">Healthy</option>
-              <option value="Observation">Observation</option>
-              <option value="Under Treatment">Under Treatment</option>
+              <option value="healthy">Healthy</option>
+              <option value="observation">Observation</option>
+              <option value="under_treatment">Under Treatment</option>
             </select>
           </div>
 
@@ -889,7 +895,7 @@ window.openAddAnimalModal = function() {
         breed: document.getElementById('anm-breed').value,
         age: document.getElementById('anm-age').value,
         weight: document.getElementById('anm-weight').value,
-        status: document.getElementById('anm-status').value
+        health_status: document.getElementById('anm-status').value
       };
       
       const mockMappedData = {
@@ -897,7 +903,7 @@ window.openAddAnimalModal = function() {
         breed: data.breed,
         age: data.age,
         weight: data.weight,
-        status: data.status,
+        health_status: data.health_status,
         lastCheck: new Date().toISOString().split('T')[0]
       };
 

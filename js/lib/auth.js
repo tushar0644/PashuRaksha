@@ -2,6 +2,7 @@ class AuthService {
   constructor() {
     this.supabase = window.supabaseClient;
     this.currentUser = null;
+    this.hasShownLoginToast = false;
     this.init();
   }
 
@@ -11,6 +12,7 @@ class AuthService {
     
     if (session) {
       this.currentUser = session.user;
+      this.hasShownLoginToast = true; // Prevents toast on initial load
       this.updateUIForAuth(true);
       
       // Check if user just verified email
@@ -27,13 +29,19 @@ class AuthService {
 
     // Listen for auth changes
     this.supabase.auth.onAuthStateChange((event, session) => {
+      // Ignore INITIAL_SESSION or TOKEN_REFRESHED to prevent duplicate toasts
       if (event === 'SIGNED_IN') {
         this.currentUser = session.user;
         this.updateUIForAuth(true);
         this.closeAuthModal();
-        window.showToast('Successfully signed in!', 'success');
+        
+        if (!this.hasShownLoginToast) {
+          window.showToast('Successfully signed in!', 'success');
+          this.hasShownLoginToast = true;
+        }
       } else if (event === 'SIGNED_OUT') {
         this.currentUser = null;
+        this.hasShownLoginToast = false;
         this.updateUIForAuth(false);
         this.renderAuthModal();
         window.showToast('Signed out', 'warning');
