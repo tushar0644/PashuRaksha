@@ -554,7 +554,12 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Start Date <span class="text-red-500">*</span></label>
-              <input type="date" id="trt-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+              <input type="date" id="trt-start-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">End Date <span class="text-red-500">*</span></label>
+              <input type="date" id="trt-end-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             
             <div>
@@ -582,13 +587,26 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   
   if(window.lucide) window.lucide.createIcons();
   
-  // Set default date
-  document.getElementById('trt-date').valueAsDate = new Date();
+  // Set default dates
+  const todayStr = window.formatDateForDB(new Date());
+  document.getElementById('trt-start-date').value = todayStr;
+  document.getElementById('trt-end-date').value = todayStr;
 
   // Handle form submission
   document.getElementById('treatment-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    const startDateVal = document.getElementById('trt-start-date').value;
+    const endDateVal = document.getElementById('trt-end-date').value;
+    
+    const start_date = window.formatDateForDB(startDateVal);
+    const end_date = window.formatDateForDB(endDateVal);
+    
+    if (!start_date || !end_date || new Date(start_date) > new Date(end_date)) {
+      window.showToast('Invalid date range. End date must be after start date.', 'error');
+      return;
+    }
+
     const btn = document.getElementById('trt-submit');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
@@ -596,14 +614,27 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     btn.classList.add('opacity-75', 'cursor-not-allowed');
     if(window.lucide) window.lucide.createIcons();
 
+    const selectedMedicine = document.getElementById('trt-medicine').value;
+    const medInfo = medicines.find(m => m.name === selectedMedicine);
+    let withdrawal_end_date = end_date;
+    
+    if (medInfo && medInfo.withdrawalMilk) {
+      const wDate = new Date(end_date);
+      wDate.setDate(wDate.getDate() + medInfo.withdrawalMilk);
+      withdrawal_end_date = window.formatDateForDB(wDate);
+    }
+
     // Map data to schema
     const data = {
       animalId: document.getElementById('trt-animal').options[document.getElementById('trt-animal').selectedIndex].text.split(' - ')[0],
-      medicine: document.getElementById('trt-medicine').value,
+      medicine: selectedMedicine,
       disease: document.getElementById('trt-disease').value,
       dose: document.getElementById('trt-dosage').value,
       route: document.getElementById('trt-route').value,
-      date: document.getElementById('trt-date').value,
+      start_date: start_date,
+      end_date: end_date,
+      withdrawal_end_date: withdrawal_end_date,
+      treatment_date: start_date, // For backward compatibility with existing views
       vet: document.getElementById('trt-vet').value,
       notes: document.getElementById('trt-notes').value
     };
@@ -711,7 +742,7 @@ window.openAddAnimalModal = function() {
       age: document.getElementById('anm-age').value,
       weight: document.getElementById('anm-weight').value,
       status: document.getElementById('anm-status').value,
-      lastCheck: new Date().toLocaleDateString() // For mock mapping
+      lastCheck: window.formatDateForDB(new Date()) 
     };
     
     const mockMappedData = {
