@@ -22,6 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const pageTitle = document.getElementById('page-title');
   const pageSubtitle = document.getElementById('page-subtitle');
 
+  function formatDateForDB(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString().split('T')[0];
+  }
+
   const views = {
     dashboard: {
       title: 'Dashboard',
@@ -727,7 +734,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   if(window.lucide) window.lucide.createIcons();
   
   // Set default dates
-  const todayStr = window.formatDateForDB(new Date());
+  const todayStr = formatDateForDB(new Date());
   document.getElementById('trt-start-date').value = todayStr;
   document.getElementById('trt-end-date').value = todayStr;
 
@@ -738,8 +745,8 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     const startDateVal = document.getElementById('trt-start-date').value;
     const endDateVal = document.getElementById('trt-end-date').value;
     
-    const start_date = window.formatDateForDB(startDateVal);
-    const end_date = window.formatDateForDB(endDateVal);
+    const start_date = formatDateForDB(startDateVal);
+    const end_date = formatDateForDB(endDateVal);
     
     if (!start_date || !end_date || new Date(start_date) > new Date(end_date)) {
       window.showToast('Invalid date range. End date must be after start date.', 'error');
@@ -760,7 +767,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     if (medInfo && medInfo.withdrawalMilk) {
       const wDate = new Date(end_date);
       wDate.setDate(wDate.getDate() + medInfo.withdrawalMilk);
-      withdrawal_end_date = window.formatDateForDB(wDate);
+      withdrawal_end_date = formatDateForDB(wDate);
     }
 
     // Map data to schema
@@ -882,8 +889,7 @@ window.openAddAnimalModal = function() {
         breed: document.getElementById('anm-breed').value,
         age: document.getElementById('anm-age').value,
         weight: document.getElementById('anm-weight').value,
-        status: document.getElementById('anm-status').value,
-        lastCheck: window.formatDateForDB(new Date()) 
+        status: document.getElementById('anm-status').value
       };
       
       const mockMappedData = {
@@ -892,7 +898,7 @@ window.openAddAnimalModal = function() {
         age: data.age,
         weight: data.weight,
         status: data.status,
-        lastCheck: data.lastCheck
+        lastCheck: new Date().toISOString().split('T')[0]
       };
 
       const res = await window.animalService.addAnimal(data); 
