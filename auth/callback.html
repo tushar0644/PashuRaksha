@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifying... | PashuRaksha</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .brand-font { font-family: 'Inter', system-ui, sans-serif; }
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 h-screen flex flex-col justify-center items-center font-sans">
+
+  <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center relative overflow-hidden">
+    <!-- Brand Line -->
+    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-emerald-600"></div>
+    
+    <div class="flex justify-center mb-6">
+      <div class="bg-emerald-50 text-emerald-500 p-4 rounded-full relative">
+        <i data-lucide="shield-check" class="w-12 h-12"></i>
+        <!-- Spinner around the icon -->
+        <svg class="animate-spin absolute top-0 left-0 w-full h-full text-emerald-500 opacity-25" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    </div>
+    
+    <h1 class="text-2xl font-bold text-gray-800 brand-font mb-2">Verifying your email...</h1>
+    <p class="text-gray-500 mb-8" id="status-msg">Please wait while we confirm your credentials securely.</p>
+    
+    <div id="error-box" class="hidden bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-4">
+      An error occurred. Please try clicking the link in your email again.
+    </div>
+
+    <button onclick="window.location.href='../index.html'" class="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
+      Return to Home
+    </button>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+
+  <!-- Load Supabase Config & SDK -->
+  <script src="../js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const supabaseUrl = window.ENV.SUPABASE_URL;
+      const supabaseKey = window.ENV.SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        document.getElementById('error-box').classList.remove('hidden');
+        document.getElementById('status-msg').textContent = "Configuration error.";
+        return;
+      }
+
+      const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+      try {
+        // Supabase auto-detects the access_token in the URL hash and establishes the session.
+        
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
+        }
+
+        // If session exists or if we detect access_token in hash, we are successful
+        if (session || window.location.hash.includes('access_token')) {
+          document.getElementById('status-msg').textContent = "Success! Redirecting...";
+          setTimeout(() => {
+            window.location.replace('../index.html?verified=true');
+          }, 1500);
+        } else {
+          // Sometimes the event listener catches it asynchronously
+          supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+              document.getElementById('status-msg').textContent = "Success! Redirecting...";
+              setTimeout(() => {
+                window.location.replace('../index.html?verified=true');
+              }, 1500);
+            }
+          });
+          
+          // Failsafe timeout if no session is detected after 3s
+          setTimeout(() => {
+            if (!document.getElementById('status-msg').textContent.includes('Success')) {
+              window.location.replace('../index.html');
+            }
+          }, 3000);
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById('error-box').classList.remove('hidden');
+        document.getElementById('status-msg').textContent = "Verification failed.";
+      }
+    });
+  </script>
+</body>
+</html>

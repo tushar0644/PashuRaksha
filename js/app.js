@@ -268,9 +268,13 @@ async function renderAnimals(container) {
         </span>
       </td>
       <td class="py-4 px-6 text-gray-500 text-sm">${a.lastCheck || new Date(a.created_at).toLocaleDateString() || 'N/A'}</td>
-      <td class="py-4 px-6 text-right">
-        <button class="text-primary hover:text-primary-dark font-medium text-sm" onclick="window.showToast('Edit mode coming soon', 'warning')">Edit</button>
-        <button class="text-red-500 hover:text-red-700 font-medium text-sm ml-2" onclick="window.animalService.deleteAnimal('${a.id}').then(() => window.location.reload())">Delete</button>
+      <td class="py-4 px-6 text-right whitespace-nowrap">
+        <button class="bg-emerald-50 text-primary hover:bg-emerald-100 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors shadow-sm" onclick="window.openAddTreatmentModal('${a.id}')">
+          <i data-lucide="syringe" class="w-3 h-3 inline-block mr-1"></i> Treat
+        </button>
+        <button class="text-gray-400 hover:text-red-600 font-medium text-sm ml-3 transition-colors" title="Delete Animal" onclick="if(confirm('Are you sure you want to remove this animal?')) window.animalService.deleteAnimal('${a.id}').then(() => document.querySelector('[data-view=\\'animals\\']').click())">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
       </td>
     </tr>
   `).join('');
@@ -452,7 +456,7 @@ function renderReports(container) {
 }
 
 // Global modal function
-window.openAddTreatmentModal = async function() {
+window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   const container = document.getElementById('modal-container');
   
   // Show loading state first
@@ -480,7 +484,7 @@ window.openAddTreatmentModal = async function() {
           <p class="text-gray-500 mb-6">You need to add an animal to your registry before logging a treatment.</p>
           <div class="flex justify-center space-x-3">
             <button onclick="document.getElementById('modal-container').innerHTML=''" class="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
-            <button onclick="document.getElementById('modal-container').innerHTML=''; document.querySelector('[data-view=\\'animals\\']').click();" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-sm transition-colors">Add Animal First</button>
+            <button onclick="document.getElementById('modal-container').innerHTML=''; document.querySelector('[data-view=\\'animals\\']').click(); window.openAddAnimalModal();" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-sm transition-colors">Add Animal First</button>
           </div>
         </div>
       </div>
@@ -489,7 +493,7 @@ window.openAddTreatmentModal = async function() {
     return;
   }
 
-  let animalOptions = animals.map(a => `<option value="${a.id}">${a.animal_tag || a.id} - ${a.breed}</option>`).join('');
+  let animalOptions = animals.map(a => `<option value="${a.id}" ${a.id === preselectedAnimalId || a.animal_tag === preselectedAnimalId ? 'selected' : ''}>${a.animal_tag || a.id} - ${a.breed}</option>`).join('');
   let medicineOptions = medicines.map(m => `<option value="${m.name}">${m.name} (${m.category})</option>`).join('');
 
   container.innerHTML = `

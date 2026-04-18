@@ -12,6 +12,14 @@ class AuthService {
     if (session) {
       this.currentUser = session.user;
       this.updateUIForAuth(true);
+      
+      // Check if user just verified email
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('verified') === 'true') {
+        window.showToast('Email successfully verified!', 'success');
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     } else {
       this.updateUIForAuth(false);
       this.renderAuthModal();
@@ -39,7 +47,8 @@ class AuthService {
         email,
         password,
         options: {
-          data: { role: role } // Store role in user metadata
+          data: { role: role }, // Store role in user metadata
+          emailRedirectTo: 'https://tushar0644.github.io/PashuRaksha/auth/callback.html'
         }
       });
       if (error) throw error;
