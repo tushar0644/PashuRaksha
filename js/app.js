@@ -44,9 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
       render: renderMRL
     },
     reports: {
-      title: 'Reports & Analytics',
-      subtitle: 'Export data for audits and compliance.',
+      title: 'Compliance Reports',
+      subtitle: 'Generate MRL logs and certificates.',
       render: renderReports
+    },
+    profile: {
+      title: 'User Dashboard',
+      subtitle: 'Manage your farm profile and settings.',
+      render: renderProfile
     }
   };
 
@@ -455,7 +460,141 @@ function renderReports(container) {
   `;
 }
 
-// Global modal function
+async function renderProfile(container) {
+  const profile = await window.userService.getProfile();
+  const stats = await window.dashboardService.getDashboardStats();
+  const animals = await window.animalService.getAnimals();
+  const treatments = await window.treatmentService.getTreatments();
+
+  // Update sidebar names to sync with profile
+  const sidebarUser = document.getElementById('sidebar-user-name');
+  const sidebarFarm = document.getElementById('sidebar-farm-name');
+  if(sidebarUser) sidebarUser.textContent = profile.full_name;
+  if(sidebarFarm) sidebarFarm.textContent = profile.farm_name;
+
+  let activityHtml = treatments.slice(0, 3).map(t => `
+    <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg mb-2 border border-gray-100">
+      <div class="bg-primary text-white p-2 rounded-full"><i data-lucide="syringe" class="w-4 h-4"></i></div>
+      <div>
+        <p class="text-sm font-semibold text-gray-800">Treatment Logged for ${t.animals ? t.animals.animal_tag : t.animalId}</p>
+        <p class="text-xs text-gray-500">${new Date(t.treatment_date || t.date).toLocaleDateString()} - ${t.medicines ? t.medicines.name : t.medicine}</p>
+      </div>
+    </div>
+  `).join('');
+
+  if(!activityHtml) activityHtml = '<p class="text-sm text-gray-500">No recent activity.</p>';
+
+  container.innerHTML = `
+    <div class="space-y-6 slide-up">
+      <!-- Header Section -->
+      <div class="glass-panel p-6 flex flex-col md:flex-row items-center md:justify-between border border-gray-100 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-50 -mr-20 -mt-20"></div>
+        <div class="flex items-center space-x-5 z-10">
+          <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=059669&color=fff&size=128" alt="Avatar" class="w-20 h-20 rounded-full shadow-md border-4 border-white">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800 brand-font">${profile.full_name}</h2>
+            <div class="flex items-center space-x-3 mt-1 text-sm text-gray-600">
+              <span class="flex items-center"><i data-lucide="shield-check" class="w-4 h-4 mr-1 text-primary"></i> ${profile.role}</span>
+              <span class="flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-1 text-gray-400"></i> ${profile.village}, ${profile.state}</span>
+            </div>
+            <p class="text-primary font-medium text-sm mt-1">${profile.farm_name}</p>
+          </div>
+        </div>
+        <div class="mt-5 md:mt-0 flex space-x-3 z-10">
+          <button onclick="window.openEditProfileModal()" class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-sm flex items-center">
+            <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i> Edit Profile
+          </button>
+          <button onclick="window.authService.signOut()" class="px-5 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium transition-colors flex items-center">
+            <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Stats & Actions Column -->
+        <div class="lg:col-span-2 space-y-6">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+              <div class="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-2">
+                <i data-lucide="paw-print" class="w-5 h-5"></i>
+              </div>
+              <p class="text-2xl font-bold text-gray-800">${animals.length || stats.totalAnimals || 0}</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Total Herd</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+              <div class="w-10 h-10 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-2">
+                <i data-lucide="activity" class="w-5 h-5"></i>
+              </div>
+              <p class="text-2xl font-bold text-gray-800">${animals.filter(a => a.status==='Healthy').length || 0}</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Healthy</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+              <div class="w-10 h-10 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center mb-2">
+                <i data-lucide="thermometer" class="w-5 h-5"></i>
+              </div>
+              <p class="text-2xl font-bold text-gray-800">${treatments.length || stats.activeTreatments || 0}</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Treated</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+              <div class="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-2">
+                <i data-lucide="shield" class="w-5 h-5"></i>
+              </div>
+              <p class="text-2xl font-bold text-gray-800">98%</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Compliance</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center sm:col-span-2">
+              <h3 class="text-sm font-bold text-gray-800 mb-3 w-full text-left">Quick Actions</h3>
+              <div class="flex space-x-2 w-full">
+                <button onclick="document.querySelector('[data-view=\\'animals\\']').click(); window.openAddAnimalModal()" class="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-200">Add Animal</button>
+                <button onclick="window.openAddTreatmentModal()" class="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg text-sm font-medium shadow-sm transition-colors">Log Treatment</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Farm Summary -->
+          <div class="glass-panel p-6 border border-gray-100">
+            <h3 class="text-lg font-bold text-gray-800 brand-font mb-4 flex items-center">
+              <i data-lucide="file-text" class="w-5 h-5 mr-2 text-primary"></i> Farm Summary
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div class="flex justify-between border-b border-gray-50 pb-2">
+                <span class="text-gray-500">Farm Type</span>
+                <span class="font-medium text-gray-800">Dairy / Livestock</span>
+              </div>
+              <div class="flex justify-between border-b border-gray-50 pb-2">
+                <span class="text-gray-500">Plan</span>
+                <span class="font-medium text-primary bg-emerald-50 px-2 py-0.5 rounded-md">${profile.plan}</span>
+              </div>
+              <div class="flex justify-between border-b border-gray-50 pb-2">
+                <span class="text-gray-500">Location</span>
+                <span class="font-medium text-gray-800">${profile.district}, ${profile.state}</span>
+              </div>
+              <div class="flex justify-between border-b border-gray-50 pb-2">
+                <span class="text-gray-500">Last Checked</span>
+                <span class="font-medium text-gray-800">Today</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Feed Column -->
+        <div class="glass-panel p-6 border border-gray-100">
+          <h3 class="text-lg font-bold text-gray-800 brand-font mb-4 flex items-center">
+            <i data-lucide="clock" class="w-5 h-5 mr-2 text-gray-400"></i> Recent Activity
+          </h3>
+          <div class="space-y-3">
+            ${activityHtml}
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  `;
+}
+
+// Global modal functions
 window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   const container = document.getElementById('modal-container');
   
@@ -768,6 +907,104 @@ window.openAddAnimalModal = function() {
       btn.innerHTML = originalText;
       btn.disabled = false;
       btn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+  });
+};
+
+window.openEditProfileModal = async function() {
+  const container = document.getElementById('modal-container');
+  const profile = await window.userService.getProfile();
+  
+  container.innerHTML = `
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 fade-in overflow-y-auto">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 m-4 relative">
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="bg-emerald-50 text-primary p-2 rounded-lg">
+              <i data-lucide="user" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800 brand-font">Edit Profile</h2>
+            </div>
+          </div>
+          <button onclick="document.getElementById('modal-container').innerHTML=''" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <form id="profile-form" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <input type="text" id="prof-name" value="${profile.full_name}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input type="tel" id="prof-phone" value="${profile.phone || ''}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            <div class="md:col-span-2">
+              <h3 class="font-bold text-gray-800 border-b border-gray-100 pb-2 mt-2">Farm Details</h3>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Farm Name</label>
+              <input type="text" id="prof-farm" value="${profile.farm_name}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            <div class="col-span-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Village/City</label>
+              <input type="text" id="prof-village" value="${profile.village}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            <div class="col-span-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1">District</label>
+              <input type="text" id="prof-district" value="${profile.district}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <input type="text" id="prof-state" value="${profile.state}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+            </div>
+          </div>
+
+          <div class="pt-5 flex justify-end space-x-3 border-t border-gray-100 mt-6">
+            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="px-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
+            <button type="submit" id="prof-submit" class="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-md transition-all flex items-center">
+              <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+              <span>Save Profile</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  if(window.lucide) window.lucide.createIcons();
+
+  document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const btn = document.getElementById('prof-submit');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
+    btn.disabled = true;
+
+    const data = {
+      full_name: document.getElementById('prof-name').value,
+      phone: document.getElementById('prof-phone').value,
+      farm_name: document.getElementById('prof-farm').value,
+      village: document.getElementById('prof-village').value,
+      district: document.getElementById('prof-district').value,
+      state: document.getElementById('prof-state').value
+    };
+
+    const res = await window.userService.updateProfile(data); 
+    
+    if (res) {
+      document.getElementById('modal-container').innerHTML = '';
+      // Refresh Profile view
+      if(document.querySelector('.nav-item.active').dataset.view === 'profile') {
+        document.querySelector('[data-view="profile"]').click();
+      }
+    } else {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
     }
   });
 };

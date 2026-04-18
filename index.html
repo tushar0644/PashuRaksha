@@ -91,11 +91,11 @@
     </div>
 
     <div class="p-4 border-t border-gray-100">
-      <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
+      <div class="nav-item flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" data-view="profile">
         <img src="https://ui-avatars.com/api/?name=Farm+Manager&background=059669&color=fff" alt="User" class="w-10 h-10 rounded-full shadow-sm">
         <div>
-          <p class="text-sm font-bold text-gray-800">Tushar K.</p>
-          <p class="text-xs text-gray-500">Green Valley Farm</p>
+          <p class="text-sm font-bold text-gray-800" id="sidebar-user-name">Tushar K.</p>
+          <p class="text-xs text-gray-500" id="sidebar-farm-name">Green Valley Farm</p>
         </div>
         <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 ml-auto"></i>
       </div>
@@ -151,6 +151,7 @@
   <script src="js/lib/supabase.js"></script>
   <script src="js/utils/toast.js"></script>
   <script src="js/lib/auth.js"></script>
+  <script src="js/services/userService.js"></script>
   <script src="js/services/animalService.js"></script>
   <script src="js/services/treatmentService.js"></script>
   <script src="js/services/dashboardService.js"></script>
