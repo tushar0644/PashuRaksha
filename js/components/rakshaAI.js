@@ -2,7 +2,6 @@ class RakshaAIComponent {
   constructor() {
     this.messages = this.loadHistory();
     this.isOpen = false;
-    this.isMinimized = false;
     this.isTyping = false;
     this.isCooldown = false;
     this.currentLang = localStorage.getItem('raksha_lang') || 'en';
@@ -24,104 +23,99 @@ class RakshaAIComponent {
   }
 
   initUI() {
-    // 1. Inject Modern HTML structure
     const container = document.createElement('div');
-    container.id = 'raksha-ai-root';
-    container.className = 'fixed bottom-6 right-6 z-[9999] flex flex-col items-end';
+    container.id = 'raksha-ai-container';
+    container.className = 'fixed bottom-6 right-6 z-[9999]';
     
     container.innerHTML = `
-      <!-- Chat Panel -->
-      <div id="raksha-panel" class="mb-4 w-[calc(100vw-32px)] md:w-[400px] h-[600px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden transition-all duration-500 ease-out transform scale-90 opacity-0 origin-bottom-right pointer-events-none translate-y-4">
+      <!-- Floating Action Button -->
+      <button id="raksha-fab" class="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 transform hover:scale-110 flex items-center justify-center border-2 border-white/20 active:scale-95 group overflow-hidden">
+        <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <i data-lucide="sparkles" class="w-8 h-8 relative z-10 group-hover:rotate-12 transition-transform"></i>
+      </button>
+
+      <!-- Premium Chat Panel -->
+      <div id="raksha-panel" class="absolute bottom-20 right-0 w-[calc(100vw-32px)] md:w-[420px] h-[650px] max-h-[85vh] bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform scale-0 opacity-0 origin-bottom-right pointer-events-none translate-y-10">
         
-        <!-- Header: Premium Gradient & Glassmorphism -->
-        <div class="bg-gradient-to-br from-primary-dark via-primary to-primary-light p-5 pb-8 relative overflow-hidden">
-          <!-- Decorative blobs -->
-          <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-          <div class="absolute -bottom-10 -left-10 w-24 h-24 bg-white/5 rounded-full blur-xl"></div>
+        <!-- Premium Header -->
+        <div class="p-6 bg-gradient-to-br from-primary-dark via-primary to-emerald-500 text-white relative overflow-hidden flex-shrink-0">
+          <!-- Glassmorphism Background elements -->
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
           
-          <div class="flex justify-between items-start relative z-10">
-            <div class="flex items-center space-x-3">
-              <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-inner">
-                <i data-lucide="sparkles" class="w-6 h-6 text-white animate-pulse"></i>
+          <div class="flex justify-between items-center relative z-10">
+            <div class="flex items-center space-x-4">
+              <div class="w-14 h-14 bg-white/20 backdrop-blur-xl rounded-[20px] border border-white/30 flex items-center justify-center shadow-inner group transition-transform hover:rotate-3">
+                <i data-lucide="bot" class="w-7 h-7 text-white"></i>
               </div>
               <div>
-                <h3 class="font-bold text-xl text-white brand-font tracking-tight">Raksha AI</h3>
-                <p class="text-[11px] text-white/80 font-medium uppercase tracking-widest">Smart Livestock Help</p>
+                <h3 class="font-bold text-2xl tracking-tight leading-none brand-font">Raksha AI</h3>
+                <div class="flex items-center mt-1.5 space-x-1.5">
+                  <span class="w-2 h-2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_8px_rgba(110,231,183,0.8)]"></span>
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/80">Always Active</span>
+                </div>
               </div>
             </div>
             <div class="flex items-center space-x-1">
-              <!-- Language Switch -->
-              <button id="raksha-lang-toggle" class="px-2 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-bold text-white border border-white/20 transition-all uppercase">
+              <button id="raksha-lang" class="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-bold text-white border border-white/10 transition-all uppercase">
                 ${this.currentLang === 'en' ? 'हिन्दी' : 'EN'}
               </button>
-              <button id="raksha-clear" class="p-2 hover:bg-white/10 rounded-lg transition-colors group" title="Clear History">
-                <i data-lucide="trash-2" class="w-4 h-4 text-white/80 group-hover:text-white"></i>
+              <button id="raksha-clear" class="p-2.5 hover:bg-white/10 rounded-xl transition-all" title="Clear Chat">
+                <i data-lucide="trash-2" class="w-4 h-4 text-white/90"></i>
               </button>
-              <button id="raksha-minimize" class="p-2 hover:bg-white/10 rounded-lg transition-colors group">
-                <i data-lucide="minus" class="w-4 h-4 text-white/80 group-hover:text-white"></i>
-              </button>
-              <button id="raksha-close" class="p-2 hover:bg-white/10 rounded-lg transition-colors group">
-                <i data-lucide="x" class="w-4 h-4 text-white/80 group-hover:text-white"></i>
+              <button id="raksha-close" class="p-2.5 hover:bg-white/10 rounded-xl transition-all">
+                <i data-lucide="x" class="w-5 h-5 text-white"></i>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Chat Area: Floating Bubbles Layout -->
-        <div id="raksha-messages" class="flex-1 -mt-4 bg-white rounded-t-3xl relative z-20 p-5 overflow-y-auto space-y-4 scroll-smooth no-scrollbar">
-          <!-- Messages flow here -->
+        <!-- Chat Area with Custom Scrollbar -->
+        <div id="raksha-messages" class="flex-1 bg-white p-6 overflow-y-auto space-y-6 scroll-smooth no-scrollbar relative z-10 -mt-2 rounded-t-[32px]">
+          <!-- Messages will be injected here -->
         </div>
 
-        <!-- Suggestions: Chip layout -->
-        <div id="raksha-suggestions" class="px-4 py-3 bg-white flex space-x-2 overflow-x-auto no-scrollbar border-t border-gray-50/50">
-          <button class="raksha-chip whitespace-nowrap text-[11px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-3 py-1.5 rounded-full hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all">Animal Status</button>
-          <button class="raksha-chip whitespace-nowrap text-[11px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-3 py-1.5 rounded-full hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all">Vaccine Due</button>
-          <button class="raksha-chip whitespace-nowrap text-[11px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-3 py-1.5 rounded-full hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all">Cow Health</button>
+        <!-- Quick Prompts Slider -->
+        <div id="raksha-suggestions" class="px-6 py-4 bg-white flex space-x-2 overflow-x-auto no-scrollbar border-t border-gray-50/50 flex-shrink-0">
+          <button class="raksha-chip whitespace-nowrap text-[12px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-4 py-2 rounded-2xl hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all shadow-sm">Herd Summary</button>
+          <button class="raksha-chip whitespace-nowrap text-[12px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-4 py-2 rounded-2xl hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all shadow-sm">Active Treatments</button>
+          <button class="raksha-chip whitespace-nowrap text-[12px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-4 py-2 rounded-2xl hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all shadow-sm">Vaccine Alerts</button>
         </div>
 
-        <!-- Input: Modern Bar -->
-        <div class="p-4 bg-white border-t border-gray-100">
-          <form id="raksha-form" class="flex items-center space-x-2 bg-gray-50 rounded-2xl p-1.5 border border-gray-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
-            <button type="button" id="raksha-mic" class="p-2.5 text-gray-400 hover:text-primary transition-colors hover:bg-white rounded-xl">
+        <!-- Premium Input Bar -->
+        <div class="p-6 pt-0 bg-white flex-shrink-0">
+          <form id="raksha-form" class="bg-gray-50/80 backdrop-blur-sm border border-gray-200 rounded-[24px] p-2 flex items-end space-x-2 shadow-inner focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+            <button type="button" id="raksha-mic" class="p-3 text-gray-400 hover:text-primary transition-all rounded-2xl hover:bg-white">
               <i data-lucide="mic" class="w-5 h-5"></i>
             </button>
-            <textarea id="raksha-input" rows="1" placeholder="Ask Raksha AI..." class="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 py-2 no-scrollbar resize-none max-h-32" style="height: 24px;"></textarea>
-            <button type="submit" id="raksha-send" class="bg-primary hover:bg-primary-dark text-white p-2.5 rounded-xl shadow-md hover:shadow-lg transition-all transform active:scale-95 disabled:opacity-40 disabled:active:scale-100">
+            <textarea id="raksha-input" rows="1" placeholder="Type your message..." class="flex-1 bg-transparent border-none outline-none text-[15px] text-gray-700 py-3 px-1 no-scrollbar resize-none max-h-32" style="height: 48px;"></textarea>
+            <button type="submit" id="raksha-send" class="bg-primary hover:bg-primary-dark text-white p-3.5 rounded-2xl shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition-all transform active:scale-90 disabled:opacity-30 disabled:scale-100">
               <i data-lucide="arrow-up" class="w-5 h-5"></i>
             </button>
           </form>
+          <p class="text-[9px] text-gray-400 text-center mt-3 font-medium uppercase tracking-[0.1em]">AI guidance is informational only • PashuRaksha</p>
         </div>
       </div>
-
-      <!-- Floating Button (FAB) -->
-      <button id="raksha-fab" class="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark text-white rounded-[24px] shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center relative group overflow-hidden border-2 border-white/20">
-        <div class="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors"></div>
-        <i data-lucide="sparkles" class="w-8 h-8 relative z-10 group-hover:rotate-12 transition-transform"></i>
-        <div id="raksha-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white flex items-center justify-center scale-0 transition-transform">1</div>
-      </button>
     `;
 
     document.body.appendChild(container);
     if (window.lucide) window.lucide.createIcons();
 
-    // 2. Element Mapping
+    // Mapping elements
     this.els = {
-      root: container,
-      panel: document.getElementById('raksha-panel'),
       fab: document.getElementById('raksha-fab'),
+      panel: document.getElementById('raksha-panel'),
       messagesBox: document.getElementById('raksha-messages'),
       form: document.getElementById('raksha-form'),
       input: document.getElementById('raksha-input'),
       sendBtn: document.getElementById('raksha-send'),
       micBtn: document.getElementById('raksha-mic'),
-      langToggle: document.getElementById('raksha-lang-toggle'),
+      langBtn: document.getElementById('raksha-lang'),
       clearBtn: document.getElementById('raksha-clear'),
-      minimizeBtn: document.getElementById('raksha-minimize'),
       closeBtn: document.getElementById('raksha-close'),
       suggestions: document.querySelectorAll('.raksha-chip')
     };
 
-    // 3. Setup Listeners
     this.setupListeners();
     this.renderMessages();
   }
@@ -129,9 +123,8 @@ class RakshaAIComponent {
   setupListeners() {
     this.els.fab.addEventListener('click', () => this.togglePanel());
     this.els.closeBtn.addEventListener('click', () => this.togglePanel(false));
-    this.els.minimizeBtn.addEventListener('click', () => this.minimize());
     this.els.clearBtn.addEventListener('click', () => this.clearChat());
-    this.els.langToggle.addEventListener('click', () => this.toggleLang());
+    this.els.langBtn.addEventListener('click', () => this.toggleLang());
     
     this.els.form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -146,7 +139,7 @@ class RakshaAIComponent {
     });
 
     this.els.input.addEventListener('input', () => {
-      this.els.input.style.height = '24px';
+      this.els.input.style.height = '48px';
       this.els.input.style.height = (this.els.input.scrollHeight) + 'px';
     });
 
@@ -161,7 +154,6 @@ class RakshaAIComponent {
     if ('webkitSpeechRecognition' in window) {
       const recognition = new webkitSpeechRecognition();
       recognition.continuous = false;
-      recognition.interimResults = false;
       recognition.lang = this.currentLang === 'en' ? 'en-IN' : 'hi-IN';
 
       this.els.micBtn.addEventListener('click', () => {
@@ -177,14 +169,7 @@ class RakshaAIComponent {
       recognition.onresult = (event) => {
         const text = event.results[0][0].transcript;
         this.els.input.value = text;
-        this.els.micBtn.classList.remove('text-red-500', 'animate-pulse');
-        this.isListening = false;
         this.handleUserSubmit();
-      };
-
-      recognition.onerror = () => {
-        this.els.micBtn.classList.remove('text-red-500', 'animate-pulse');
-        this.isListening = false;
       };
 
       recognition.onend = () => {
@@ -199,42 +184,22 @@ class RakshaAIComponent {
   togglePanel(force) {
     this.isOpen = force !== undefined ? force : !this.isOpen;
     if (this.isOpen) {
-      this.els.panel.classList.remove('scale-90', 'opacity-0', 'pointer-events-none', 'translate-y-4');
+      this.els.panel.classList.remove('scale-0', 'opacity-0', 'pointer-events-none', 'translate-y-10');
       this.els.panel.classList.add('scale-100', 'opacity-100', 'pointer-events-auto', 'translate-y-0');
-      this.isMinimized = false;
-      this.els.panel.style.height = '600px';
-      setTimeout(() => this.els.input.focus(), 500);
+      setTimeout(() => this.els.input.focus(), 600);
       this.scrollToBottom();
     } else {
-      this.els.panel.classList.add('scale-90', 'opacity-0', 'pointer-events-none', 'translate-y-4');
+      this.els.panel.classList.add('scale-0', 'opacity-0', 'pointer-events-none', 'translate-y-10');
       this.els.panel.classList.remove('scale-100', 'opacity-100', 'pointer-events-auto', 'translate-y-0');
-    }
-  }
-
-  minimize() {
-    this.isMinimized = !this.isMinimized;
-    if (this.isMinimized) {
-      this.els.panel.style.height = '100px';
-      this.els.messagesBox.style.display = 'none';
-      document.getElementById('raksha-suggestions').style.display = 'none';
-      this.els.form.parentElement.style.display = 'none';
-    } else {
-      this.els.panel.style.height = '600px';
-      setTimeout(() => {
-        this.els.messagesBox.style.display = 'block';
-        document.getElementById('raksha-suggestions').style.display = 'flex';
-        this.els.form.parentElement.style.display = 'block';
-        this.scrollToBottom();
-      }, 300);
     }
   }
 
   toggleLang() {
     this.currentLang = this.currentLang === 'en' ? 'hi' : 'en';
     localStorage.setItem('raksha_lang', this.currentLang);
-    this.els.langToggle.textContent = this.currentLang === 'en' ? 'हिन्दी' : 'EN';
-    window.showToast(`Switched to ${this.currentLang === 'en' ? 'English' : 'Hindi'}`, 'info');
-    // Re-initialize speech recognition lang if active
+    this.els.langBtn.textContent = this.currentLang === 'en' ? 'हिन्दी' : 'EN';
+    window.showToast(`AI mode: ${this.currentLang === 'en' ? 'English' : 'Hindi'}`, 'info');
+    this.renderMessages();
   }
 
   formatTime(dateStr) {
@@ -245,10 +210,10 @@ class RakshaAIComponent {
   renderMessages() {
     this.els.messagesBox.innerHTML = '';
     
-    // Welcome
+    // Welcome Bubble
     this.appendMessage({
       role: 'assistant',
-      content: this.currentLang === 'en' ? 'Namaste! I am Raksha AI. How can I help with your livestock today?' : 'नमस्ते! मैं रक्षा एआई हूँ। आज मैं आपके पशुओं की कैसे मदद कर सकता हूँ?',
+      content: this.currentLang === 'en' ? 'Namaste! I am Raksha AI. Your smart assistant for livestock and farm productivity. How can I help you today?' : 'नमस्ते! मैं रक्षा एआई हूँ। आपके पशुओं और फार्म की उत्पादकता के लिए आपका स्मार्ट सहायक। मैं आज आपकी क्या मदद कर सकता हूँ?',
       timestamp: new Date().toISOString(),
       isWelcome: true
     });
@@ -260,17 +225,22 @@ class RakshaAIComponent {
   appendMessage(msg) {
     const isUser = msg.role === 'user';
     const div = document.createElement('div');
-    div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in mb-4 px-1`;
+    div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in mb-6`;
     if (msg.id) div.id = msg.id;
 
     const innerHtml = `
-      <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%]">
-        <div class="msg-bubble px-4 py-3 rounded-2xl ${isUser ? 'bg-primary text-white rounded-tr-none shadow-md' : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200'} text-[13.5px] leading-relaxed whitespace-pre-wrap">
+      <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%] relative group">
+        <div class="px-5 py-4 rounded-[24px] ${isUser ? 'bg-primary text-white rounded-tr-[4px] shadow-[0_8px_20px_rgba(16,185,129,0.2)]' : 'bg-gray-100/80 text-gray-800 rounded-tl-[4px] border border-gray-100'} text-[14.5px] leading-[1.6] whitespace-pre-wrap font-medium">
           ${msg.content}
         </div>
-        <span class="text-[9px] text-gray-400 mt-1 font-medium tracking-wide uppercase px-1">
-          ${isUser ? 'You' : 'Raksha AI'} • ${this.formatTime(msg.timestamp)}
-        </span>
+        <div class="flex items-center mt-2 space-x-2 px-1">
+          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+            ${isUser ? 'You' : 'Raksha AI'}
+          </span>
+          <span class="text-[10px] text-gray-300 font-medium">
+            ${this.formatTime(msg.timestamp)}
+          </span>
+        </div>
       </div>
     `;
 
@@ -283,14 +253,12 @@ class RakshaAIComponent {
     this.isTyping = true;
     const div = document.createElement('div');
     div.id = 'raksha-typing';
-    div.className = 'flex justify-start animate-fade-in mb-4 px-1';
+    div.className = 'flex justify-start animate-fade-in mb-6';
     div.innerHTML = `
-      <div class="flex flex-col items-start">
-        <div class="bg-gray-100 border border-gray-200 px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center space-x-1.5">
-          <div class="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" style="animation-delay: 0s"></div>
-          <div class="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-          <div class="w-1.5 h-1.5 bg-primary/80 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-        </div>
+      <div class="bg-gray-100/80 border border-gray-100 px-6 py-4 rounded-[24px] rounded-tl-[4px] flex items-center space-x-2 shadow-sm">
+        <div class="w-2 h-2 bg-primary/30 rounded-full animate-bounce [animation-delay:-0.32s]"></div>
+        <div class="w-2 h-2 bg-primary/50 rounded-full animate-bounce [animation-delay:-0.16s]"></div>
+        <div class="w-2 h-2 bg-primary/80 rounded-full animate-bounce"></div>
       </div>
     `;
     this.els.messagesBox.appendChild(div);
@@ -310,7 +278,7 @@ class RakshaAIComponent {
   }
 
   clearChat() {
-    if (confirm(this.currentLang === 'en' ? 'Clear all chat history?' : 'क्या आप सारी चैट मिटाना चाहते हैं?')) {
+    if (confirm('Clear entire conversation history?')) {
       this.messages = [];
       this.saveHistory();
       this.renderMessages();
@@ -322,7 +290,7 @@ class RakshaAIComponent {
     if (!text || this.isTyping || this.isCooldown) return;
 
     this.els.input.value = '';
-    this.els.input.style.height = '24px';
+    this.els.input.style.height = '48px';
     
     const userMsg = { role: 'user', content: text, timestamp: new Date().toISOString() };
     this.messages.push(userMsg);
@@ -346,20 +314,14 @@ class RakshaAIComponent {
       this.hideTypingIndicator();
       if (error.status === 429) {
         this.isCooldown = true;
-        this.appendMessage({ role: 'assistant', content: "AI is busy. Please retry in 1 minute.", timestamp: new Date().toISOString() });
-        this.els.input.disabled = true;
-        this.els.input.placeholder = "Cooldown (30s)...";
+        this.appendMessage({ role: 'assistant', content: "Our AI is resting for a moment. Automatic retry in 30 seconds.", timestamp: new Date().toISOString() });
         setTimeout(() => {
           this.isCooldown = false;
-          this.els.input.disabled = false;
-          this.els.sendBtn.disabled = false;
-          this.els.input.placeholder = "Ask Raksha AI...";
-          this.els.input.value = text;
           this.handleUserSubmit();
         }, 30000);
-        return;
+      } else {
+        window.showToast('AI connection lost. Please retry.', 'error');
       }
-      window.showToast('Network error. Check your connection.', 'error');
     } finally {
       if (!this.isCooldown) {
         this.els.sendBtn.disabled = false;
