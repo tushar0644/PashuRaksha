@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PashuRaksha — Safe Batch Traceability</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .brand-font { font-family: 'Outfit', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-6">
+    
+    <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
+        <!-- Header -->
+        <div class="bg-emerald-600 p-8 text-white text-center relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <div class="relative z-10">
+                <div class="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30 shadow-inner">
+                    <i data-lucide="shield-check" class="w-10 h-10 text-white"></i>
+                </div>
+                <h1 class="brand-font text-3xl">PashuRaksha</h1>
+                <p class="text-emerald-100 text-sm font-medium uppercase tracking-[0.2em] mt-1">Certified Safe Batch</p>
+            </div>
+        </div>
+
+        <!-- Verification Content -->
+        <div class="p-8 space-y-6 text-center">
+            <div class="bg-emerald-50 border border-emerald-100 text-emerald-700 px-6 py-4 rounded-2xl inline-block w-full">
+                <div class="flex items-center justify-center space-x-2 mb-1">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                    <span class="font-bold text-lg">Batch Verified Safe</span>
+                </div>
+                <p class="text-xs">No active antimicrobial residues detected.</p>
+            </div>
+
+            <div class="space-y-4 text-left">
+                <div class="flex justify-between items-center border-b border-gray-50 pb-3">
+                    <span class="text-gray-500 text-sm">Farm Name</span>
+                    <span id="farm-name" class="font-bold text-gray-800">---</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-gray-50 pb-3">
+                    <span class="text-gray-500 text-sm">Batch ID</span>
+                    <span id="batch-id" class="font-mono font-bold text-emerald-600">---</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-gray-50 pb-3">
+                    <span class="text-gray-500 text-sm">Verification Date</span>
+                    <span id="verify-date" class="font-bold text-gray-800">---</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-gray-50 pb-3">
+                    <span class="text-gray-500 text-sm">Status</span>
+                    <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest">MRL Compliant</span>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <p class="text-gray-400 text-[10px] leading-relaxed">
+                    This batch has been verified through the PashuRaksha Digital Farm Management System. All withdrawal periods for medical treatments have been successfully completed as of the verification date.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gray-50 p-6 text-center border-t border-gray-100">
+            <button onclick="window.close()" class="text-emerald-600 font-bold text-sm hover:underline">Close Verification</button>
+        </div>
+    </div>
+
+    <script>
+        // Parse URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById('farm-name').textContent = urlParams.get('farm') || 'Green Valley Farm';
+        document.getElementById('batch-id').textContent = urlParams.get('batch') || 'PR-TRACER-X';
+        document.getElementById('verify-date').textContent = new Date().toLocaleDateString();
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

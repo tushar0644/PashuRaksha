@@ -104,6 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const viewName = e.currentTarget.dataset.view;
       switchView(viewName);
       
+      // Close notification dropdown on click
+      const dropdown = document.getElementById('notification-dropdown');
+      if (dropdown) {
+        dropdown.classList.add('hidden', 'opacity-0', 'scale-95');
+      }
+
       // Close mobile sidebar on click
       if(window.innerWidth < 768 && sidebar) {
         sidebar.classList.add('hidden');
@@ -111,23 +117,103 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Initialize Notifications
+  initNotifications();
+
   // Load default view
   switchView('dashboard');
 });
 
+function initNotifications() {
+  const bell = document.getElementById('notification-bell');
+  const dropdown = document.getElementById('notification-dropdown');
+  const badge = document.getElementById('notification-badge');
+  const list = document.getElementById('notification-list');
+
+  if (!bell || !dropdown) return;
+
+  // Toggle Dropdown
+  bell.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = dropdown.classList.contains('hidden');
+    if (isHidden) {
+      dropdown.classList.remove('hidden');
+      setTimeout(() => {
+        dropdown.classList.remove('opacity-0', 'scale-95');
+        dropdown.classList.add('opacity-100', 'scale-100');
+      }, 10);
+    } else {
+      dropdown.classList.remove('opacity-100', 'scale-100');
+      dropdown.classList.add('opacity-0', 'scale-95');
+      setTimeout(() => dropdown.classList.add('hidden'), 200);
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', () => {
+    dropdown.classList.remove('opacity-100', 'scale-100');
+    dropdown.classList.add('opacity-0', 'scale-95');
+    setTimeout(() => dropdown.classList.add('hidden'), 200);
+  });
+
+  dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+  // Subscribe to Service
+  window.notificationService.subscribe(({ notifications, unreadCount }) => {
+    // Update Badge
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+
+    // Update List
+    if (notifications.length === 0) {
+      list.innerHTML = `
+        <div class="p-8 text-center">
+          <div class="bg-gray-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="bell-off" class="w-6 h-6 text-gray-300"></i>
+          </div>
+          <p class="text-sm text-gray-500">No new alerts</p>
+        </div>
+      `;
+    } else {
+      list.innerHTML = notifications.map(n => `
+        <div class="p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-start space-x-3 ${!n.is_read ? 'bg-emerald-50/30' : ''}" onclick="window.notificationService.markAsRead('${n.id}')">
+          <div class="p-2 rounded-lg ${n.type === 'mrl' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'} mt-0.5">
+            <i data-lucide="${n.type === 'mrl' ? 'alert-triangle' : 'info'}" class="w-4 h-4"></i>
+          </div>
+          <div class="flex-1">
+            <div class="flex justify-between items-start">
+              <h5 class="text-xs font-bold text-gray-800">${n.title}</h5>
+              <span class="text-[10px] text-gray-400">${new Date(n.created_at).toLocaleDateString()}</span>
+            </div>
+            <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">${n.message}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+    if(window.lucide) window.lucide.createIcons();
+  });
+
+  // Initial Fetch
+  window.notificationService.fetchNotifications();
+}
+
 // --- View Renderers ---
 
 async function renderDashboard(container) {
-  // Fetch real stats from Supabase
+  // Initial fetch for stats
   const stats = await window.dashboardService.getDashboardStats();
   const treatments = await window.treatmentService.getTreatments();
   
   const activeTreatments = treatments.length || stats.activeTreatments;
-  const totalAnimals = stats.totalAnimals || mockData.animals.length; // fallback
+  const totalAnimals = stats.totalAnimals;
   
   let restrictedCount = 0;
+  // Calculate restricted count based on MRL status
   treatments.forEach(t => {
-    // Fallback logic for demo
     const medName = t.medicines ? t.medicines.name : t.medicine;
     const med = mockData.medicines.find(m => m.name === medName);
     if(med) {
@@ -137,6 +223,11 @@ async function renderDashboard(container) {
   });
 
   const html = `
+    <!-- AMU Summary Cards -->
+    <div id="amu-summary-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+       <!-- Loaded dynamically -->
+    </div>
+
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="glass-panel p-6 hover-card stagger-1 border-l-4 border-l-blue-500">
@@ -147,7 +238,6 @@ async function renderDashboard(container) {
           </div>
           <div class="bg-blue-50 p-2 rounded-lg text-blue-500"><i data-lucide="paw-print"></i></div>
         </div>
-        <p class="text-xs text-green-600 mt-4 flex items-center"><i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> +2 this month</p>
       </div>
       
       <div class="glass-panel p-6 hover-card stagger-2 border-l-4 border-l-purple-500">
@@ -186,9 +276,26 @@ async function renderDashboard(container) {
     <!-- Charts Area -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 glass-panel p-6 slide-up">
-        <h3 class="text-lg font-bold text-gray-800 mb-4 brand-font" data-i18n="dashboard.amuTrends">Antimicrobial Usage (AMU) Trends</h3>
-        <div class="relative h-72 w-full">
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <h3 class="text-lg font-bold text-gray-800 brand-font" data-i18n="dashboard.amuTrends">AMU Live Analytics</h3>
+          <div class="flex items-center space-x-2">
+            <select id="amu-range" class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary">
+              <option value="3">Last 3 Months</option>
+              <option value="6" selected>Last 6 Months</option>
+              <option value="12">Last 12 Months</option>
+            </select>
+          </div>
+        </div>
+        <div id="chart-loading" class="hidden flex justify-center items-center h-72">
+          <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-primary"></i>
+        </div>
+        <div id="chart-container" class="relative h-72 w-full">
           <canvas id="amuChart"></canvas>
+        </div>
+        <div id="empty-chart-state" class="hidden flex flex-col justify-center items-center h-72 text-center">
+           <div class="bg-gray-50 p-4 rounded-full mb-4 text-gray-400"><i data-lucide="bar-chart-2" class="w-8 h-8"></i></div>
+           <p class="text-gray-500 font-medium">No treatment records available yet.</p>
+           <button class="mt-4 text-primary font-bold text-sm hover:underline" onclick="window.openAddTreatmentModal()">Log first treatment</button>
         </div>
       </div>
       
@@ -204,7 +311,122 @@ async function renderDashboard(container) {
   
   container.innerHTML = html;
 
-  // Render Alerts
+  // Function to refresh chart data
+  async function refreshAMUChart(months = 6) {
+    const loading = document.getElementById('chart-loading');
+    const chartContainer = document.getElementById('chart-container');
+    const emptyState = document.getElementById('empty-chart-state');
+    const summaryContainer = document.getElementById('amu-summary-cards');
+
+    loading.classList.remove('hidden');
+    chartContainer.classList.add('hidden');
+    emptyState.classList.add('hidden');
+
+    const data = await window.dashboardService.getAMUTrends(months);
+    
+    loading.classList.add('hidden');
+
+    // Summary Cards
+    const antiChangeColor = data.antiChange > 0 ? 'text-red-500' : 'text-emerald-500';
+    const vacChangeColor = data.vacChange >= 0 ? 'text-emerald-500' : 'text-red-500';
+    const antiIcon = data.antiChange > 0 ? 'trending-up' : 'trending-down';
+    const vacIcon = data.vacChange >= 0 ? 'trending-up' : 'trending-down';
+
+    summaryContainer.innerHTML = `
+      <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center space-x-4">
+        <div class="bg-red-50 text-red-500 p-2.5 rounded-lg"><i data-lucide="flask-conical"></i></div>
+        <div>
+          <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Antibiotics</p>
+          <h4 class="text-xl font-bold text-gray-800">${data.totalAntibiotics} doses</h4>
+          <p class="text-[10px] ${antiChangeColor} mt-1 flex items-center font-bold">
+            <i data-lucide="${antiIcon}" class="w-2.5 h-2.5 mr-1"></i> ${Math.abs(data.antiChange)}% vs last month
+          </p>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center space-x-4">
+        <div class="bg-emerald-50 text-primary p-2.5 rounded-lg"><i data-lucide="shield-plus"></i></div>
+        <div>
+          <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Vaccinations</p>
+          <h4 class="text-xl font-bold text-gray-800">${data.totalVaccines} doses</h4>
+          <p class="text-[10px] ${vacChangeColor} mt-1 flex items-center font-bold">
+            <i data-lucide="${vacIcon}" class="w-2.5 h-2.5 mr-1"></i> ${Math.abs(data.vacChange)}% vs last month
+          </p>
+        </div>
+      </div>
+    `;
+    if(window.lucide) window.lucide.createIcons();
+
+    if (data.labels.length === 0 || (data.totalAntibiotics === 0 && data.totalVaccines === 0)) {
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    chartContainer.classList.remove('hidden');
+    const ctx = document.getElementById('amuChart').getContext('2d');
+    
+    if (window.myAMUChart) window.myAMUChart.destroy();
+
+    window.myAMUChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.labels,
+        datasets: [
+          {
+            label: 'Antibiotics',
+            data: data.antibiotics,
+            backgroundColor: '#ef4444',
+            borderRadius: 6
+          },
+          {
+            label: 'Vaccines',
+            data: data.vaccines,
+            backgroundColor: '#10b981',
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            titleColor: '#1e293b',
+            bodyColor: '#64748b',
+            borderColor: '#e2e8f0',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            usePointStyle: true,
+            callbacks: {
+              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.formattedValue} doses`
+            }
+          }
+        },
+        scales: {
+          y: { 
+            beginAtZero: true, 
+            grid: { color: '#f8fafc', drawBorder: false },
+            ticks: { stepSize: 1, color: '#94a3b8', font: { size: 10 } }
+          },
+          x: { 
+            grid: { display: false },
+            ticks: { color: '#64748b', font: { size: 10, weight: '600' } }
+          }
+        }
+      }
+    });
+  }
+
+  // Range Listener
+  const rangeSelect = document.getElementById('amu-range');
+  rangeSelect.addEventListener('change', (e) => refreshAMUChart(parseInt(e.target.value)));
+
+  // Initial Chart Render
+  refreshAMUChart(6);
+
+  // Render Alerts (keeping existing logic but ensuring lucide icons work)
   const alertsContainer = document.getElementById('dashboard-alerts');
   let alertHtml = '';
   treatments.forEach(t => {
@@ -231,44 +453,7 @@ async function renderDashboard(container) {
   });
   if(!alertHtml) alertHtml = '<p class="text-sm text-gray-500">No active restrictions. All products safe for release.</p>';
   alertsContainer.innerHTML = alertHtml;
-
-  // Render Chart
-  const ctx = document.getElementById('amuChart').getContext('2d');
-  const labels = mockData.amuStats.monthly.map(d => d.month);
-  const antibiotics = mockData.amuStats.monthly.map(d => d.antibiotics);
-  const vaccines = mockData.amuStats.monthly.map(d => d.vaccines);
-
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Antibiotics (Doses)',
-          data: antibiotics,
-          backgroundColor: '#ef4444', // Red 500
-          borderRadius: 4
-        },
-        {
-          label: 'Vaccines (Doses)',
-          data: vaccines,
-          backgroundColor: '#10b981', // Emerald 500
-          borderRadius: 4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom' }
-      },
-      scales: {
-        y: { beginAtZero: true, grid: { borderDash: [2, 4], color: '#f1f5f9' } },
-        x: { grid: { display: false } }
-      }
-    }
-  });
+  if(window.lucide) window.lucide.createIcons();
 }
 
 async function renderAnimals(container) {
@@ -552,23 +737,34 @@ async function renderMRL(container) {
 function renderReports(container) {
   container.innerHTML = `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 slide-up">
-      <div class="glass-panel p-8 text-center hover-card cursor-pointer border border-gray-100">
-        <div class="w-16 h-16 mx-auto bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
-          <i data-lucide="file-check-2" class="w-8 h-8"></i>
+      <div class="glass-panel p-8 text-center hover-card cursor-pointer border border-gray-100 group" onclick="window.reportService.generateCompliancePDF()">
+        <div class="w-20 h-20 mx-auto bg-blue-50 text-blue-600 rounded-[24px] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
+          <i data-lucide="file-check-2" class="w-10 h-10"></i>
         </div>
-        <h3 class="text-xl font-bold text-gray-800 brand-font">Compliance Audit Report</h3>
-        <p class="text-gray-500 text-sm mt-2 mb-6">Generate full MRL and AMU logs for regulatory inspectors and buyers.</p>
-        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">Download PDF</button>
+        <h3 class="text-2xl font-bold text-gray-800 brand-font">Compliance Audit Report</h3>
+        <p class="text-gray-500 text-sm mt-3 mb-8 px-4 leading-relaxed">Generate full MRL and AMU logs based on your live farm records for regulatory inspectors and cooperatives.</p>
+        <button class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all transform active:scale-95 flex items-center justify-center space-x-2">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>Download PDF Report</span>
+        </button>
       </div>
 
-      <div class="glass-panel p-8 text-center hover-card cursor-pointer border border-gray-100">
-        <div class="w-16 h-16 mx-auto bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-4">
-          <i data-lucide="qr-code" class="w-8 h-8"></i>
+      <div class="glass-panel p-8 text-center hover-card cursor-pointer border border-gray-100 group" onclick="window.reportService.generateSafeBatchQR()">
+        <div class="w-20 h-20 mx-auto bg-emerald-50 text-emerald-600 rounded-[24px] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
+          <i data-lucide="qr-code" class="w-10 h-10"></i>
         </div>
-        <h3 class="text-xl font-bold text-gray-800 brand-font">Safe Batch QR Badge</h3>
-        <p class="text-gray-500 text-sm mt-2 mb-6">Generate traceability QR codes to prove milk/meat safety to buyers.</p>
-        <button class="px-6 py-2 border border-green-600 text-green-600 rounded-lg font-medium hover:bg-green-50 transition-colors">Generate QR</button>
+        <h3 class="text-2xl font-bold text-gray-800 brand-font">Safe Batch QR Badge</h3>
+        <p class="text-gray-500 text-sm mt-3 mb-8 px-4 leading-relaxed">Generate traceability QR codes to prove milk/meat safety to buyers. Requires zero active MRL restrictions.</p>
+        <button class="w-full py-3 border-2 border-emerald-600 text-emerald-600 rounded-xl font-bold hover:bg-emerald-50 transition-all transform active:scale-95 flex items-center justify-center space-x-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Generate Safe Badge</span>
+        </button>
       </div>
+    </div>
+
+    <!-- Empty State Helper -->
+    <div class="mt-12 p-8 border-2 border-dashed border-gray-200 rounded-[32px] text-center bg-gray-50/50">
+       <p class="text-gray-400 text-sm italic">Reports are dynamically generated using your real-time Supabase records. Ensure all treatments are logged accurately for valid compliance.</p>
     </div>
   `;
 }
