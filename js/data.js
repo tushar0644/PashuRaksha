@@ -11,7 +11,7 @@ const mockData = {
     { id: 'MED-01', name: 'Oxytetracycline (LA)', category: 'Antibiotic', route: 'IM', withdrawalMilk: 7, withdrawalMeat: 28, residueLimit: '100 µg/kg' },
     { id: 'MED-02', name: 'Amoxicillin', category: 'Antibiotic', route: 'IM', withdrawalMilk: 4, withdrawalMeat: 14, residueLimit: '4 µg/kg' },
     { id: 'MED-03', name: 'Ivermectin', category: 'Dewormer', route: 'SC', withdrawalMilk: 28, withdrawalMeat: 35, residueLimit: '10 µg/kg' },
-    { id: 'MED-04', name: 'Meloxicam', category: 'Anti-inflammatory', route: 'IM', withdrawalMilk: 5, withdrawalMeat: 15, residueLimit: '15 µg/kg' },
+    { id: 'MED-04', name: 'Meloxicam', category: 'Pain Relief', route: 'IM', withdrawalMilk: 5, withdrawalMeat: 15, residueLimit: '15 µg/kg' },
     { id: 'MED-05', name: 'FMD Vaccine', category: 'Vaccine', route: 'SC', withdrawalMilk: 0, withdrawalMeat: 0, residueLimit: 'N/A' }
   ],
 
@@ -70,4 +70,18 @@ function getMRLStatus(treatmentDate, withdrawalDays) {
   if (diffDays <= 0) return { status: 'Safe', color: 'safe', remaining: 0 };
   if (diffDays <= 2) return { status: 'Warning', color: 'warning', remaining: diffDays };
   return { status: 'Restricted', color: 'danger', remaining: diffDays };
+}
+
+function normalizeCategory(cat) {
+  if (!cat) return 'Other';
+  const c = cat.toLowerCase().trim();
+  const map = {
+    'vaccine': 'Vaccine',
+    'antibiotic': 'Antibiotic',
+    'pain relief': 'Pain Relief',
+    'anti-inflammatory': 'Pain Relief',
+    'dewormer': 'Dewormer',
+    'antiparasitic': 'Antiparasitic'
+  };
+  return map[c] || cat.charAt(0).toUpperCase() + cat.slice(1);
 }

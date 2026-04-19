@@ -973,7 +973,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
 
   let animalOptions = animals.map(a => `<option value="${a.id}" ${a.id === preselectedAnimalId || a.animal_tag === preselectedAnimalId ? 'selected' : ''}>${a.animal_tag || a.id} - ${a.breed}</option>`).join('');
   let diseaseOptions = diseases.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-  let medicineOptions = medicines.map(m => `<option value="${m.id}">${m.name} (${m.category})</option>`).join('');
+  let medicineOptions = medicines.map(m => `<option value="${m.id}">${m.name} (${normalizeCategory(m.category)})</option>`).join('');
 
   window.modalDiseases = diseases;
   window.modalMedicines = medicines;
@@ -1103,7 +1103,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
         const m = window.modalMedicines.find(x => x.id === e.target.value);
         const infoEl = document.getElementById('trt-medicine-info');
         if (m) {
-          const category = m.category || 'N/A';
+          const category = normalizeCategory(m.category);
           const withdrawalDays = m.withdrawal_milk_days !== undefined ? m.withdrawal_milk_days : (m.withdrawalMilk || 0);
           
           document.getElementById('trt-med-cat').textContent = category;

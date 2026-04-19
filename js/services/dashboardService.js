@@ -64,7 +64,9 @@ class DashboardService {
         const monthIndex = monthNames.indexOf(monthName);
         
         if (monthIndex !== -1) {
-          const category = t.medicines?.category;
+          const rawCat = t.medicines?.category;
+          const category = normalizeCategory(rawCat);
+          
           if (category === 'Antibiotic') {
             antibioticCounts[monthIndex]++;
           } else if (category === 'Vaccine') {
