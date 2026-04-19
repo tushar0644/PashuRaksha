@@ -1143,6 +1143,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     btn.classList.add('opacity-75', 'cursor-not-allowed');
     if(window.lucide) window.lucide.createIcons();
 
+    const selectedAnimalId = document.getElementById('trt-animal').value;
     const selectedMedicineId = document.getElementById('trt-medicine') ? document.getElementById('trt-medicine').value : '';
     const selectedDiseaseId = document.getElementById('trt-disease') ? document.getElementById('trt-disease').value : null;
 
@@ -1162,39 +1163,41 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
 
     // Map data to schema
     const data = {
-      animalId: document.getElementById('trt-animal').options[document.getElementById('trt-animal').selectedIndex].text.split(' - ')[0],
+      animal_id: selectedAnimalId,
       medicine_id: selectedMedicineId,
-      medicine: medInfo ? medInfo.name : '',
       disease_id: selectedDiseaseId,
-      disease: diseaseInfo ? diseaseInfo.name : '',
-      dose: document.getElementById('trt-dosage').value,
+      dosage: document.getElementById('trt-dosage').value,
       route: document.getElementById('trt-route').value,
       start_date: start_date,
       end_date: end_date,
       withdrawal_end_date: withdrawal_end_date,
-      treatment_date: start_date, // For backward compatibility with existing views
       vet: document.getElementById('trt-vet').value,
       notes: document.getElementById('trt-notes').value
     };
 
     // Use Supabase Service if active, otherwise fallback inside the service handles mockData insertion
-    const res = await window.treatmentService.addTreatment(data); 
-    
-    if (res || window.mockData) {
-      if(window.mockData && !res) {
-          window.mockData.treatments.unshift(data);
-      }
+    // 4. Handle Result
+    if (res) {
+      // Success: Clear and refresh
       document.getElementById('modal-container').innerHTML = '';
       
-      // Navigate to treatments view to refresh UI and Dashboard calculations
-      const activeNav = document.querySelector('.nav-item.active').dataset.view;
-      document.querySelector(`[data-view="${activeNav}"]`).click(); // Reload current view
+      // Navigate to current view to refresh UI
+      const activeNavEl = document.querySelector('.nav-item.active');
+      if (activeNavEl) {
+        const viewName = activeNavEl.dataset.view;
+        switchView(viewName); // Use the existing switchView helper for a clean refresh
+      }
       
-      // We don't need to manually show toast here because addTreatment service handles it
+      // Update Dashboard Chart if it's open
+      if (typeof refreshAMUChart === 'function') {
+        refreshAMUChart(document.getElementById('amu-range')?.value || 6);
+      }
     } else {
+      // Failure: Reset button so user can try again
       btn.innerHTML = originalText;
       btn.disabled = false;
       btn.classList.remove('opacity-75', 'cursor-not-allowed');
+      // Error toast is already shown by treatmentService.addTreatment
     }
   });
 };
