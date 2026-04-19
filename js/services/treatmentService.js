@@ -30,7 +30,7 @@ class TreatmentService {
     try {
       // 1. Verify session
       const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
-      if (sessionError || !session) throw new Error("You must be logged in to log a treatment.");
+      if (sessionError || !session) throw new Error("Authentication failed: No active session.");
 
       // 2. Fetch farm_id
       const { data: farmData, error: farmError } = await this.supabase
@@ -39,45 +39,56 @@ class TreatmentService {
         .eq('owner_id', session.user.id)
         .single();
         
-      if (farmError || !farmData) {
-        throw new Error("Could not find your farm profile.");
-      }
+      if (farmError || !farmData) throw new Error("Farm profile not found. Please complete your profile first.");
 
-      // 3. Map to snake_case schema
+      // 3. Construct Forensic Payload (Mapping to user's expected schema)
       const payload = {
         farm_id: farmData.id,
-        animal_id: treatmentData.animal_id || treatmentData.animalId, // Support both
+        animal_id: treatmentData.animal_id,
         medicine_id: treatmentData.medicine_id,
-        disease_id: treatmentData.disease_id,
-        dosage: treatmentData.dosage || treatmentData.dose,
+        medicine_name: treatmentData.medicine_name || treatmentData.medicine, // Standardizing
+        diagnosis: treatmentData.diagnosis || treatmentData.disease || 'General Treatment',
+        dosage: treatmentData.dosage,
         route: treatmentData.route,
-        treatment_date: treatmentData.treatment_date || treatmentData.start_date,
         start_date: treatmentData.start_date,
         end_date: treatmentData.end_date,
         withdrawal_end_date: treatmentData.withdrawal_end_date,
-        vet_id: treatmentData.vet_id || treatmentData.vet || null,
-        notes: treatmentData.notes || null
+        treatment_date: treatmentData.start_date, // Compatibility
+        prescribed_by: treatmentData.prescribed_by || treatmentData.vet || 'Unknown Vet',
+        notes: treatmentData.notes || ''
       };
 
-      console.log('Sending treatment insert:', payload);
+      console.group('🔍 Forensic Debug: Log Treatment');
+      console.log('Table: treatments');
+      console.log('User ID:', session.user.id);
+      console.log('Payload:', payload);
+      console.groupEnd();
 
-      const insertPromise = this.supabase
-        .from(this.table)
-        .insert([payload])
-        .select();
-
-      const { data, error } = await Promise.race([
-        insertPromise,
+      // 4. Execute Insert
+      const { data, error, status } = await Promise.race([
+        this.supabase.from(this.table).insert([payload]).select(),
         timeout(10000)
       ]);
 
-      if (error) throw error;
+      console.group('💾 Supabase Response');
+      console.log('Status:', status);
+      console.log('Data:', data);
+      console.log('Error:', error);
+      console.groupEnd();
+
+      if (error) {
+        throw new Error(`${error.message} (Code: ${error.code})`);
+      }
       
+      if (!data || data.length === 0) {
+        throw new Error("Insert succeeded but no data was returned. Check RLS policies.");
+      }
+
       window.showToast('Treatment logged successfully!', 'success');
       return data[0];
     } catch (error) {
-      console.error('Treatment Insert Error:', error);
-      window.showToast('Failed to log treatment: ' + error.message, 'error');
+      console.error('❌ Forensic Debug Failure:', error);
+      window.showToast(`Log Failed: ${error.message}`, 'error');
       return null;
     }
   }

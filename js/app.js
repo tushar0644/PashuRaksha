@@ -1172,30 +1172,31 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     const selectedDiseaseId = document.getElementById('trt-disease') ? document.getElementById('trt-disease').value : null;
 
     const medInfo = window.modalMedicines.find(m => m.id === selectedMedicineId);
-    let withdrawal_end_date = end_date;
+    const diseaseInfo = window.modalDiseases.find(d => d.id === selectedDiseaseId);
     
+    let withdrawal_end_date = end_date;
     if (medInfo) {
       const withdrawalDays = medInfo.withdrawal_milk_days !== undefined ? medInfo.withdrawal_milk_days : (medInfo.withdrawalMilk || 0);
       if (withdrawalDays > 0) {
         const wDate = new Date(end_date);
         wDate.setDate(wDate.getDate() + withdrawalDays);
-        withdrawal_end_date = formatDateForDB(wDate);
+        withdrawal_end_date = wDate.toISOString().split('T')[0];
       }
     }
 
-    const diseaseInfo = window.modalDiseases.find(d => d.id === selectedDiseaseId);
-
-    // Map data to schema
+    // Map data to standardized schema
     const data = {
       animal_id: selectedAnimalId,
       medicine_id: selectedMedicineId,
+      medicine_name: medInfo ? medInfo.name : '',
       disease_id: selectedDiseaseId,
+      diagnosis: diseaseInfo ? diseaseInfo.name : document.getElementById('trt-notes').value.substring(0, 50),
       dosage: document.getElementById('trt-dosage').value,
       route: document.getElementById('trt-route').value,
       start_date: start_date,
       end_date: end_date,
       withdrawal_end_date: withdrawal_end_date,
-      vet: document.getElementById('trt-vet').value,
+      prescribed_by: document.getElementById('trt-vet').value || 'Self',
       notes: document.getElementById('trt-notes').value
     };
 
