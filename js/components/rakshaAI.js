@@ -3,7 +3,9 @@ class RakshaAIComponent {
     this.messages = this.loadHistory();
     this.isOpen = false;
     this.isTyping = false;
-    this.isCooldown = false;
+    this.isListening = false;
+    this.isSpeaking = false;
+    this.isVoiceEnabled = localStorage.getItem('raksha_voice_enabled') === 'true';
     this.currentLang = localStorage.getItem('raksha_lang') || 'en';
     this.initUI();
   }
@@ -24,44 +26,46 @@ class RakshaAIComponent {
 
   initUI() {
     const container = document.createElement('div');
-    container.id = 'raksha-ai-container';
+    container.id = 'raksha-ai-root';
     container.className = 'fixed bottom-6 right-6 z-[9999]';
     
     container.innerHTML = `
       <!-- Floating Action Button -->
-      <button id="raksha-fab" class="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300 transform hover:scale-110 flex items-center justify-center border-2 border-white/20 active:scale-95 group overflow-hidden">
-        <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <button id="raksha-fab" class="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center border-2 border-white/20 active:scale-95 group overflow-hidden">
+        <div class="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors"></div>
         <i data-lucide="sparkles" class="w-8 h-8 relative z-10 group-hover:rotate-12 transition-transform"></i>
       </button>
 
-      <!-- Premium Chat Panel -->
-      <div id="raksha-panel" class="absolute bottom-20 right-0 w-[calc(100vw-32px)] md:w-[420px] h-[650px] max-h-[85vh] bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform scale-0 opacity-0 origin-bottom-right pointer-events-none translate-y-10">
+      <!-- Voice + Chat Panel -->
+      <div id="raksha-panel" class="absolute bottom-20 right-0 w-[calc(100vw-32px)] md:w-[420px] h-[650px] max-h-[85vh] bg-white rounded-[32px] shadow-2xl border border-gray-100 flex flex-col overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform scale-0 opacity-0 origin-bottom-right pointer-events-none translate-y-10">
         
         <!-- Premium Header -->
         <div class="p-6 bg-gradient-to-br from-primary-dark via-primary to-emerald-500 text-white relative overflow-hidden flex-shrink-0">
-          <!-- Glassmorphism Background elements -->
-          <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+          <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
           
-          <div class="flex justify-between items-center relative z-10">
+          <div class="flex justify-between items-start relative z-10">
             <div class="flex items-center space-x-4">
-              <div class="w-14 h-14 bg-white/20 backdrop-blur-xl rounded-[20px] border border-white/30 flex items-center justify-center shadow-inner group transition-transform hover:rotate-3">
-                <i data-lucide="bot" class="w-7 h-7 text-white"></i>
-              </div>
-              <div>
-                <h3 class="font-bold text-2xl tracking-tight leading-none brand-font">Raksha AI</h3>
-                <div class="flex items-center mt-1.5 space-x-1.5">
-                  <span class="w-2 h-2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_8px_rgba(110,231,183,0.8)]"></span>
-                  <span class="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/80">Always Active</span>
+              <div class="w-14 h-14 bg-white/20 backdrop-blur-xl rounded-[20px] border border-white/30 flex items-center justify-center shadow-inner relative group">
+                <i data-lucide="mic" id="raksha-speaking-icon" class="w-7 h-7 text-white transition-transform ${this.isSpeaking ? 'animate-pulse scale-110' : ''}"></i>
+                <!-- Voice wave animation while AI is talking -->
+                <div id="raksha-speaking-wave" class="absolute inset-0 flex items-center justify-center space-x-0.5 pointer-events-none ${this.isSpeaking ? '' : 'hidden'}">
+                  <div class="w-1 h-3 bg-white/60 rounded-full animate-voice-bar"></div>
+                  <div class="w-1 h-5 bg-white/80 rounded-full animate-voice-bar" style="animation-delay: 0.1s"></div>
+                  <div class="w-1 h-4 bg-white/60 rounded-full animate-voice-bar" style="animation-delay: 0.2s"></div>
                 </div>
               </div>
+              <div>
+                <h3 class="font-bold text-xl tracking-tight leading-none brand-font">Raksha Voice AI</h3>
+                <p class="text-[10px] text-white/80 font-semibold uppercase tracking-[0.1em] mt-1.5">Smart Livestock Assistant</p>
+              </div>
             </div>
-            <div class="flex items-center space-x-1">
-              <button id="raksha-lang" class="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-bold text-white border border-white/10 transition-all uppercase">
-                ${this.currentLang === 'en' ? 'हिन्दी' : 'EN'}
+            <div class="flex items-center space-x-1.5">
+              <!-- Voice Toggle -->
+              <button id="raksha-voice-toggle" class="p-2.5 hover:bg-white/10 rounded-xl transition-all ${this.isVoiceEnabled ? 'text-white' : 'text-white/40'}" title="Voice Output ON/OFF">
+                <i data-lucide="${this.isVoiceEnabled ? 'volume-2' : 'volume-x'}" class="w-4 h-4"></i>
               </button>
-              <button id="raksha-clear" class="p-2.5 hover:bg-white/10 rounded-xl transition-all" title="Clear Chat">
-                <i data-lucide="trash-2" class="w-4 h-4 text-white/90"></i>
+              <button id="raksha-lang-toggle" class="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-bold text-white border border-white/10 transition-all uppercase">
+                ${this.currentLang === 'en' ? 'हिन्दी' : 'EN'}
               </button>
               <button id="raksha-close" class="p-2.5 hover:bg-white/10 rounded-xl transition-all">
                 <i data-lucide="x" class="w-5 h-5 text-white"></i>
@@ -70,30 +74,39 @@ class RakshaAIComponent {
           </div>
         </div>
 
-        <!-- Chat Area with Custom Scrollbar -->
-        <div id="raksha-messages" class="flex-1 bg-white p-6 overflow-y-auto space-y-6 scroll-smooth no-scrollbar relative z-10 -mt-2 rounded-t-[32px]">
-          <!-- Messages will be injected here -->
+        <!-- Chat Area -->
+        <div id="raksha-messages" class="flex-1 bg-white p-5 overflow-y-auto space-y-6 scroll-smooth no-scrollbar relative z-10 -mt-2 rounded-t-[32px]">
+          <!-- Welcome Message -->
         </div>
 
-        <!-- Quick Prompts Slider -->
-        <div id="raksha-suggestions" class="px-6 py-4 bg-white flex space-x-2 overflow-x-auto no-scrollbar border-t border-gray-50/50 flex-shrink-0">
-          <button class="raksha-chip whitespace-nowrap text-[12px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-4 py-2 rounded-2xl hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all shadow-sm">Herd Summary</button>
-          <button class="raksha-chip whitespace-nowrap text-[12px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-4 py-2 rounded-2xl hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all shadow-sm">Active Treatments</button>
-          <button class="raksha-chip whitespace-nowrap text-[12px] font-medium bg-gray-50 text-gray-600 border border-gray-100 px-4 py-2 rounded-2xl hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all shadow-sm">Vaccine Alerts</button>
+        <!-- Voice Quick Actions -->
+        <div id="raksha-shortcuts" class="px-5 py-3 bg-white flex space-x-2 overflow-x-auto no-scrollbar border-t border-gray-50/50 flex-shrink-0">
+          <button class="raksha-shortcut whitespace-nowrap text-[11px] font-bold bg-gray-50 text-gray-500 border border-gray-100 px-3 py-2 rounded-xl hover:bg-primary/5 hover:text-primary transition-all">Farm Summary</button>
+          <button class="raksha-shortcut whitespace-nowrap text-[11px] font-bold bg-gray-50 text-gray-500 border border-gray-100 px-3 py-2 rounded-xl hover:bg-primary/5 hover:text-primary transition-all">Vaccines Due</button>
+          <button class="raksha-shortcut whitespace-nowrap text-[11px] font-bold bg-gray-50 text-gray-500 border border-gray-100 px-3 py-2 rounded-xl hover:bg-primary/5 hover:text-primary transition-all">Sick Animals</button>
+          <button class="raksha-shortcut whitespace-nowrap text-[11px] font-bold bg-gray-50 text-gray-500 border border-gray-100 px-3 py-2 rounded-xl hover:bg-primary/5 hover:text-primary transition-all">Milk Safe?</button>
         </div>
 
-        <!-- Premium Input Bar -->
-        <div class="p-6 pt-0 bg-white flex-shrink-0">
-          <form id="raksha-form" class="bg-gray-50/80 backdrop-blur-sm border border-gray-200 rounded-[24px] p-2 flex items-end space-x-2 shadow-inner focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/5 transition-all">
-            <button type="button" id="raksha-mic" class="p-3 text-gray-400 hover:text-primary transition-all rounded-2xl hover:bg-white">
-              <i data-lucide="mic" class="w-5 h-5"></i>
+        <!-- Unified Input: Mic + Text -->
+        <div class="p-5 pt-0 bg-white flex-shrink-0">
+          <div id="raksha-voice-wave" class="hidden mb-3 h-8 flex items-center justify-center space-x-1">
+             <div class="w-1 h-4 bg-primary animate-pulse"></div>
+             <div class="w-1 h-8 bg-primary animate-pulse" style="animation-delay: 0.1s"></div>
+             <div class="w-1 h-6 bg-primary animate-pulse" style="animation-delay: 0.2s"></div>
+             <div class="w-1 h-4 bg-primary animate-pulse" style="animation-delay: 0.3s"></div>
+          </div>
+          
+          <form id="raksha-form" class="bg-gray-50 border border-gray-200 rounded-[24px] p-2 flex items-end space-x-2 shadow-inner focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+            <button type="button" id="raksha-mic" class="p-3.5 text-gray-400 hover:text-primary transition-all rounded-2xl hover:bg-white flex-shrink-0 relative">
+              <i data-lucide="mic" class="w-6 h-6"></i>
+              <div id="raksha-mic-ring" class="absolute inset-0 border-2 border-primary rounded-2xl animate-ping opacity-0"></div>
             </button>
-            <textarea id="raksha-input" rows="1" placeholder="Type your message..." class="flex-1 bg-transparent border-none outline-none text-[15px] text-gray-700 py-3 px-1 no-scrollbar resize-none max-h-32" style="height: 48px;"></textarea>
-            <button type="submit" id="raksha-send" class="bg-primary hover:bg-primary-dark text-white p-3.5 rounded-2xl shadow-[0_4px_12px_rgba(16,185,129,0.3)] transition-all transform active:scale-90 disabled:opacity-30 disabled:scale-100">
+            <textarea id="raksha-input" rows="1" placeholder="Type or ask by voice..." class="flex-1 bg-transparent border-none outline-none text-[15px] text-gray-700 py-3 px-1 no-scrollbar resize-none max-h-32" style="height: 48px;"></textarea>
+            <button type="submit" id="raksha-send" class="bg-primary hover:bg-primary-dark text-white p-3.5 rounded-2xl shadow-lg transition-all transform active:scale-90 disabled:opacity-30 disabled:scale-100">
               <i data-lucide="arrow-up" class="w-5 h-5"></i>
             </button>
           </form>
-          <p class="text-[9px] text-gray-400 text-center mt-3 font-medium uppercase tracking-[0.1em]">AI guidance is informational only • PashuRaksha</p>
+          <p class="text-[9px] text-gray-400 text-center mt-3 font-bold uppercase tracking-widest">Alexa for livestock farmers • Raksha AI Assistant</p>
         </div>
       </div>
     `;
@@ -101,7 +114,6 @@ class RakshaAIComponent {
     document.body.appendChild(container);
     if (window.lucide) window.lucide.createIcons();
 
-    // Mapping elements
     this.els = {
       fab: document.getElementById('raksha-fab'),
       panel: document.getElementById('raksha-panel'),
@@ -110,10 +122,14 @@ class RakshaAIComponent {
       input: document.getElementById('raksha-input'),
       sendBtn: document.getElementById('raksha-send'),
       micBtn: document.getElementById('raksha-mic'),
-      langBtn: document.getElementById('raksha-lang'),
-      clearBtn: document.getElementById('raksha-clear'),
+      micRing: document.getElementById('raksha-mic-ring'),
+      voiceToggle: document.getElementById('raksha-voice-toggle'),
+      langToggle: document.getElementById('raksha-lang-toggle'),
       closeBtn: document.getElementById('raksha-close'),
-      suggestions: document.querySelectorAll('.raksha-chip')
+      shortcuts: document.querySelectorAll('.raksha-shortcut'),
+      speakingWave: document.getElementById('raksha-speaking-wave'),
+      speakingIcon: document.getElementById('raksha-speaking-icon'),
+      inputWave: document.getElementById('raksha-voice-wave')
     };
 
     this.setupListeners();
@@ -123,8 +139,8 @@ class RakshaAIComponent {
   setupListeners() {
     this.els.fab.addEventListener('click', () => this.togglePanel());
     this.els.closeBtn.addEventListener('click', () => this.togglePanel(false));
-    this.els.clearBtn.addEventListener('click', () => this.clearChat());
-    this.els.langBtn.addEventListener('click', () => this.toggleLang());
+    this.els.langToggle.addEventListener('click', () => this.toggleLang());
+    this.els.voiceToggle.addEventListener('click', () => this.toggleVoice());
     
     this.els.form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -143,42 +159,68 @@ class RakshaAIComponent {
       this.els.input.style.height = (this.els.input.scrollHeight) + 'px';
     });
 
-    this.els.suggestions.forEach(btn => {
+    this.els.shortcuts.forEach(btn => {
       btn.addEventListener('click', () => {
         this.els.input.value = btn.textContent;
         this.handleUserSubmit();
       });
     });
 
-    // Voice Input Setup
+    // 1. Voice Recognition (Input)
     if ('webkitSpeechRecognition' in window) {
       const recognition = new webkitSpeechRecognition();
       recognition.continuous = false;
+      recognition.interimResults = true;
       recognition.lang = this.currentLang === 'en' ? 'en-IN' : 'hi-IN';
 
       this.els.micBtn.addEventListener('click', () => {
+        if (this.isSpeaking) window.speechSynthesis.cancel();
         if (this.isListening) {
           recognition.stop();
         } else {
           recognition.start();
-          this.els.micBtn.classList.add('text-red-500', 'animate-pulse');
-          this.isListening = true;
         }
       });
 
+      recognition.onstart = () => {
+        this.isListening = true;
+        this.els.micBtn.classList.add('text-red-500');
+        this.els.micRing.classList.remove('opacity-0');
+        this.els.inputWave.classList.remove('hidden');
+        this.els.input.placeholder = "Listening...";
+      };
+
       recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript;
-        this.els.input.value = text;
-        this.handleUserSubmit();
+        const transcript = Array.from(event.results)
+          .map(result => result[0])
+          .map(result => result.transcript)
+          .join('');
+        this.els.input.value = transcript;
       };
 
       recognition.onend = () => {
-        this.els.micBtn.classList.remove('text-red-500', 'animate-pulse');
         this.isListening = false;
+        this.els.micBtn.classList.remove('text-red-500');
+        this.els.micRing.classList.add('opacity-0');
+        this.els.inputWave.classList.add('hidden');
+        this.els.input.placeholder = "Type or ask by voice...";
+        if (this.els.input.value.trim().length > 3) {
+          this.handleUserSubmit();
+        }
       };
-    } else {
-      this.els.micBtn.style.display = 'none';
+
+      recognition.onerror = () => {
+        this.isListening = false;
+        this.els.micBtn.classList.remove('text-red-500');
+        this.els.micRing.classList.add('opacity-0');
+        this.els.inputWave.classList.add('hidden');
+      };
     }
+
+    // 2. Speech Synthesis Setup (Output)
+    window.speechSynthesis.onvoiceschanged = () => {
+      this.voices = window.speechSynthesis.getVoices();
+    };
   }
 
   togglePanel(force) {
@@ -186,20 +228,57 @@ class RakshaAIComponent {
     if (this.isOpen) {
       this.els.panel.classList.remove('scale-0', 'opacity-0', 'pointer-events-none', 'translate-y-10');
       this.els.panel.classList.add('scale-100', 'opacity-100', 'pointer-events-auto', 'translate-y-0');
-      setTimeout(() => this.els.input.focus(), 600);
       this.scrollToBottom();
     } else {
       this.els.panel.classList.add('scale-0', 'opacity-0', 'pointer-events-none', 'translate-y-10');
       this.els.panel.classList.remove('scale-100', 'opacity-100', 'pointer-events-auto', 'translate-y-0');
+      window.speechSynthesis.cancel();
     }
+  }
+
+  toggleVoice() {
+    this.isVoiceEnabled = !this.isVoiceEnabled;
+    localStorage.setItem('raksha_voice_enabled', this.isVoiceEnabled);
+    this.els.voiceToggle.classList.toggle('text-white', this.isVoiceEnabled);
+    this.els.voiceToggle.classList.toggle('text-white/40', !this.isVoiceEnabled);
+    this.els.voiceToggle.innerHTML = `<i data-lucide="${this.isVoiceEnabled ? 'volume-2' : 'volume-x'}" class="w-4 h-4"></i>`;
+    if(window.lucide) window.lucide.createIcons();
+    if (!this.isVoiceEnabled) window.speechSynthesis.cancel();
+    window.showToast(`Voice Reading ${this.isVoiceEnabled ? 'Enabled' : 'Disabled'}`, 'info');
   }
 
   toggleLang() {
     this.currentLang = this.currentLang === 'en' ? 'hi' : 'en';
     localStorage.setItem('raksha_lang', this.currentLang);
-    this.els.langBtn.textContent = this.currentLang === 'en' ? 'हिन्दी' : 'EN';
-    window.showToast(`AI mode: ${this.currentLang === 'en' ? 'English' : 'Hindi'}`, 'info');
-    this.renderMessages();
+    this.els.langToggle.textContent = this.currentLang === 'en' ? 'हिन्दी' : 'EN';
+    window.showToast(`Assistant Mode: ${this.currentLang === 'en' ? 'English' : 'Hindi'}`, 'info');
+    // Recognition object needs to be updated or recreated if we want real-time language switch
+    location.reload(); // Simplest way to re-bind recognition lang
+  }
+
+  speakResponse(text) {
+    if (!this.isVoiceEnabled || !window.speechSynthesis) return;
+    
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Detect language and pick voice
+    const isHindi = /[\u0900-\u097F]/.test(text);
+    utterance.lang = isHindi ? 'hi-IN' : 'en-IN';
+    
+    utterance.onstart = () => {
+      this.isSpeaking = true;
+      this.els.speakingWave.classList.remove('hidden');
+      this.els.speakingIcon.classList.add('animate-pulse', 'scale-110');
+    };
+    
+    utterance.onend = () => {
+      this.isSpeaking = false;
+      this.els.speakingWave.classList.add('hidden');
+      this.els.speakingIcon.classList.remove('animate-pulse', 'scale-110');
+    };
+    
+    window.speechSynthesis.speak(utterance);
   }
 
   formatTime(dateStr) {
@@ -209,15 +288,12 @@ class RakshaAIComponent {
 
   renderMessages() {
     this.els.messagesBox.innerHTML = '';
-    
-    // Welcome Bubble
     this.appendMessage({
       role: 'assistant',
-      content: this.currentLang === 'en' ? 'Namaste! I am Raksha AI. Your smart assistant for livestock and farm productivity. How can I help you today?' : 'नमस्ते! मैं रक्षा एआई हूँ। आपके पशुओं और फार्म की उत्पादकता के लिए आपका स्मार्ट सहायक। मैं आज आपकी क्या मदद कर सकता हूँ?',
+      content: this.currentLang === 'en' ? 'Namaste! I am Raksha Voice AI. Speak or type to manage your livestock.' : 'नमस्ते! मैं रक्षा वॉइस एआई हूँ। अपने पशुओं के प्रबंधन के लिए बोलें या टाइप करें।',
       timestamp: new Date().toISOString(),
       isWelcome: true
     });
-
     this.messages.forEach(msg => this.appendMessage(msg));
     this.scrollToBottom();
   }
@@ -226,26 +302,25 @@ class RakshaAIComponent {
     const isUser = msg.role === 'user';
     const div = document.createElement('div');
     div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in mb-6`;
-    if (msg.id) div.id = msg.id;
-
-    const innerHtml = `
-      <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%] relative group">
-        <div class="px-5 py-4 rounded-[24px] ${isUser ? 'bg-primary text-white rounded-tr-[4px] shadow-[0_8px_20px_rgba(16,185,129,0.2)]' : 'bg-gray-100/80 text-gray-800 rounded-tl-[4px] border border-gray-100'} text-[14.5px] leading-[1.6] whitespace-pre-wrap font-medium">
+    
+    div.innerHTML = `
+      <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%] group">
+        <div class="px-5 py-4 rounded-[24px] ${isUser ? 'bg-primary text-white rounded-tr-[4px] shadow-lg' : 'bg-gray-100 text-gray-800 rounded-tl-[4px] border border-gray-100'} text-[14.5px] leading-[1.6] relative">
           ${msg.content}
+          ${!isUser ? `<button class="raksha-read-msg absolute -right-8 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="volume-2" class="w-3.5 h-3.5"></i></button>` : ''}
         </div>
-        <div class="flex items-center mt-2 space-x-2 px-1">
-          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-            ${isUser ? 'You' : 'Raksha AI'}
-          </span>
-          <span class="text-[10px] text-gray-300 font-medium">
-            ${this.formatTime(msg.timestamp)}
-          </span>
-        </div>
+        <span class="text-[9px] text-gray-400 mt-2 font-bold uppercase tracking-widest px-1">
+          ${isUser ? 'You' : 'Assistant'} • ${this.formatTime(msg.timestamp)}
+        </span>
       </div>
     `;
 
-    div.innerHTML = innerHtml;
     this.els.messagesBox.appendChild(div);
+    if(window.lucide) window.lucide.createIcons();
+
+    const readBtn = div.querySelector('.raksha-read-msg');
+    if(readBtn) readBtn.addEventListener('click', () => this.speakResponse(msg.content));
+    
     this.scrollToBottom();
   }
 
@@ -255,10 +330,10 @@ class RakshaAIComponent {
     div.id = 'raksha-typing';
     div.className = 'flex justify-start animate-fade-in mb-6';
     div.innerHTML = `
-      <div class="bg-gray-100/80 border border-gray-100 px-6 py-4 rounded-[24px] rounded-tl-[4px] flex items-center space-x-2 shadow-sm">
-        <div class="w-2 h-2 bg-primary/30 rounded-full animate-bounce [animation-delay:-0.32s]"></div>
-        <div class="w-2 h-2 bg-primary/50 rounded-full animate-bounce [animation-delay:-0.16s]"></div>
-        <div class="w-2 h-2 bg-primary/80 rounded-full animate-bounce"></div>
+      <div class="bg-gray-50 border border-gray-100 px-6 py-4 rounded-[24px] rounded-tl-[4px] flex items-center space-x-2">
+        <div class="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></div>
+        <div class="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+        <div class="w-1.5 h-1.5 bg-primary/80 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
       </div>
     `;
     this.els.messagesBox.appendChild(div);
@@ -277,17 +352,9 @@ class RakshaAIComponent {
     }, 50);
   }
 
-  clearChat() {
-    if (confirm('Clear entire conversation history?')) {
-      this.messages = [];
-      this.saveHistory();
-      this.renderMessages();
-    }
-  }
-
   async handleUserSubmit() {
     const text = this.els.input.value.trim();
-    if (!text || this.isTyping || this.isCooldown) return;
+    if (!text || this.isTyping) return;
 
     this.els.input.value = '';
     this.els.input.style.height = '48px';
@@ -309,24 +376,16 @@ class RakshaAIComponent {
       this.messages.push(aiMsg);
       this.saveHistory();
       this.appendMessage(aiMsg);
+      
+      // Voice output
+      this.speakResponse(responseContent);
 
     } catch (error) {
       this.hideTypingIndicator();
-      if (error.status === 429) {
-        this.isCooldown = true;
-        this.appendMessage({ role: 'assistant', content: "Our AI is resting for a moment. Automatic retry in 30 seconds.", timestamp: new Date().toISOString() });
-        setTimeout(() => {
-          this.isCooldown = false;
-          this.handleUserSubmit();
-        }, 30000);
-      } else {
-        window.showToast('AI connection lost. Please retry.', 'error');
-      }
+      window.showToast('AI Connection Issue', 'error');
     } finally {
-      if (!this.isCooldown) {
-        this.els.sendBtn.disabled = false;
-        this.isTyping = false;
-      }
+      this.els.sendBtn.disabled = false;
+      this.isTyping = false;
       this.scrollToBottom();
     }
   }
