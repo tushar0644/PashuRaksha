@@ -1175,7 +1175,8 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
       notes: document.getElementById('trt-notes').value
     };
 
-    // Use Supabase Service if active, otherwise fallback inside the service handles mockData insertion
+    const res = await window.treatmentService.addTreatment(data); 
+
     // 4. Handle Result
     if (res) {
       // Success: Clear and refresh
