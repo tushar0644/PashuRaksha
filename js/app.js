@@ -74,8 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update Headers
     const viewMeta = views[viewName];
     if(viewMeta) {
-      pageTitle.textContent = viewMeta.title;
-      pageSubtitle.textContent = viewMeta.subtitle;
+      pageTitle.setAttribute('data-i18n', `header.title.${viewName}`);
+      pageTitle.textContent = window.i18n ? window.i18n.t(`header.title.${viewName}`) : viewMeta.title;
+      
+      pageSubtitle.setAttribute('data-i18n', `header.subtitle.${viewName}`);
+      pageSubtitle.textContent = window.i18n ? window.i18n.t(`header.subtitle.${viewName}`) : viewMeta.subtitle;
       
       // Clear container with fade out
       viewContainer.innerHTML = '<div class="flex justify-center p-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-primary"></i></div>';
@@ -84,6 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Render Content
       await viewMeta.render(viewContainer);
+      
+      if(window.i18n) window.i18n.updateDOM();
       
       // Re-initialize icons for newly added HTML
       if(window.lucide) {
@@ -137,7 +142,7 @@ async function renderDashboard(container) {
       <div class="glass-panel p-6 hover-card stagger-1 border-l-4 border-l-blue-500">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 font-medium">Total Animals</p>
+            <p class="text-sm text-gray-500 font-medium" data-i18n="dashboard.totalAnimals">Total Animals</p>
             <h3 class="text-3xl font-bold text-gray-800 mt-1">${totalAnimals}</h3>
           </div>
           <div class="bg-blue-50 p-2 rounded-lg text-blue-500"><i data-lucide="paw-print"></i></div>
@@ -148,7 +153,7 @@ async function renderDashboard(container) {
       <div class="glass-panel p-6 hover-card stagger-2 border-l-4 border-l-purple-500">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 font-medium">Active Treatments</p>
+            <p class="text-sm text-gray-500 font-medium" data-i18n="dashboard.activeTreatments">Active Treatments</p>
             <h3 class="text-3xl font-bold text-gray-800 mt-1">${activeTreatments}</h3>
           </div>
           <div class="bg-purple-50 p-2 rounded-lg text-purple-500"><i data-lucide="activity"></i></div>
@@ -158,7 +163,7 @@ async function renderDashboard(container) {
       <div class="glass-panel p-6 hover-card stagger-3 border-l-4 border-l-red-500">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 font-medium">MRL Restricted</p>
+            <p class="text-sm text-gray-500 font-medium" data-i18n="dashboard.mrlRestricted">MRL Restricted</p>
             <h3 class="text-3xl font-bold text-gray-800 mt-1">${restrictedCount}</h3>
           </div>
           <div class="bg-red-50 p-2 rounded-lg text-red-500"><i data-lucide="alert-triangle"></i></div>
@@ -169,8 +174,8 @@ async function renderDashboard(container) {
       <div class="glass-panel p-6 hover-card stagger-4 border-l-4 border-l-primary">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 font-medium">AMU Index</p>
-            <h3 class="text-3xl font-bold text-gray-800 mt-1">Safe</h3>
+            <p class="text-sm text-gray-500 font-medium" data-i18n="dashboard.amuIndex">AMU Index</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-1" data-i18n="dashboard.safe">Safe</h3>
           </div>
           <div class="bg-emerald-50 p-2 rounded-lg text-primary"><i data-lucide="shield-check"></i></div>
         </div>
@@ -181,18 +186,18 @@ async function renderDashboard(container) {
     <!-- Charts Area -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 glass-panel p-6 slide-up">
-        <h3 class="text-lg font-bold text-gray-800 mb-4 brand-font">Antimicrobial Usage (AMU) Trends</h3>
+        <h3 class="text-lg font-bold text-gray-800 mb-4 brand-font" data-i18n="dashboard.amuTrends">Antimicrobial Usage (AMU) Trends</h3>
         <div class="relative h-72 w-full">
           <canvas id="amuChart"></canvas>
         </div>
       </div>
       
       <div class="glass-panel p-6 slide-up" style="animation-delay: 0.2s">
-        <h3 class="text-lg font-bold text-gray-800 mb-4 brand-font">Active MRL Alerts</h3>
+        <h3 class="text-lg font-bold text-gray-800 mb-4 brand-font" data-i18n="dashboard.activeAlerts">Active MRL Alerts</h3>
         <div class="space-y-4" id="dashboard-alerts">
           <!-- Alerts generated via JS -->
         </div>
-        <button class="w-full mt-6 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" onclick="document.querySelector('[data-view=\\'mrl\\']').click()">View All Restrictions</button>
+        <button class="w-full mt-6 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" onclick="document.querySelector('[data-view=\\'mrl\\']').click()" data-i18n="dashboard.viewAll">View All Restrictions</button>
       </div>
     </div>
   `;
@@ -515,10 +520,10 @@ async function renderProfile(container) {
         </div>
         <div class="mt-5 md:mt-0 flex space-x-3 z-10">
           <button onclick="window.openEditProfileModal()" class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-sm flex items-center">
-            <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i> Edit Profile
+            <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i> <span data-i18n="btn.editProfile">Edit Profile</span>
           </button>
           <button onclick="window.authService.signOut()" class="px-5 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium transition-colors flex items-center">
-            <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> Logout
+            <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> <span data-i18n="btn.logout">Logout</span>
           </button>
         </div>
       </div>
@@ -534,34 +539,34 @@ async function renderProfile(container) {
                 <i data-lucide="paw-print" class="w-5 h-5"></i>
               </div>
               <p class="text-2xl font-bold text-gray-800">${animals.length || stats.totalAnimals || 0}</p>
-              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Total Herd</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1" data-i18n="profile.totalHerd">Total Herd</p>
             </div>
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
               <div class="w-10 h-10 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-2">
                 <i data-lucide="activity" class="w-5 h-5"></i>
               </div>
               <p class="text-2xl font-bold text-gray-800">${animals.filter(a => (a.health_status || a.status || '').toLowerCase() === 'healthy').length || 0}</p>
-              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Healthy</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1" data-i18n="profile.healthy">Healthy</p>
             </div>
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
               <div class="w-10 h-10 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center mb-2">
                 <i data-lucide="thermometer" class="w-5 h-5"></i>
               </div>
               <p class="text-2xl font-bold text-gray-800">${treatments.length || stats.activeTreatments || 0}</p>
-              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Treated</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1" data-i18n="profile.treated">Treated</p>
             </div>
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
               <div class="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-2">
                 <i data-lucide="shield" class="w-5 h-5"></i>
               </div>
               <p class="text-2xl font-bold text-gray-800">98%</p>
-              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1">Compliance</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mt-1" data-i18n="profile.compliance">Compliance</p>
             </div>
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center sm:col-span-2">
-              <h3 class="text-sm font-bold text-gray-800 mb-3 w-full text-left">Quick Actions</h3>
+              <h3 class="text-sm font-bold text-gray-800 mb-3 w-full text-left" data-i18n="profile.quickActions">Quick Actions</h3>
               <div class="flex space-x-2 w-full">
-                <button onclick="document.querySelector('[data-view=\\'animals\\']').click(); window.openAddAnimalModal()" class="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-200">Add Animal</button>
-                <button onclick="window.openAddTreatmentModal()" class="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg text-sm font-medium shadow-sm transition-colors">Log Treatment</button>
+                <button onclick="document.querySelector('[data-view=\\'animals\\']').click(); window.openAddAnimalModal()" class="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-200" data-i18n="btn.addAnimal">Add Animal</button>
+                <button onclick="window.openAddTreatmentModal()" class="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg text-sm font-medium shadow-sm transition-colors" data-i18n="btn.logTreatment">Log Treatment</button>
               </div>
             </div>
           </div>
@@ -569,7 +574,7 @@ async function renderProfile(container) {
           <!-- Farm Summary -->
           <div class="glass-panel p-6 border border-gray-100">
             <h3 class="text-lg font-bold text-gray-800 brand-font mb-4 flex items-center">
-              <i data-lucide="file-text" class="w-5 h-5 mr-2 text-primary"></i> Farm Summary
+              <i data-lucide="file-text" class="w-5 h-5 mr-2 text-primary"></i> <span data-i18n="profile.farmSummary">Farm Summary</span>
             </h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div class="flex justify-between border-b border-gray-50 pb-2">
@@ -595,7 +600,7 @@ async function renderProfile(container) {
         <!-- Activity Feed Column -->
         <div class="glass-panel p-6 border border-gray-100">
           <h3 class="text-lg font-bold text-gray-800 brand-font mb-4 flex items-center">
-            <i data-lucide="clock" class="w-5 h-5 mr-2 text-gray-400"></i> Recent Activity
+            <i data-lucide="clock" class="w-5 h-5 mr-2 text-gray-400"></i> <span data-i18n="profile.recentActivity">Recent Activity</span>
           </h3>
           <div class="space-y-3">
             ${activityHtml}
@@ -623,7 +628,19 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
 
   // Fetch data
   const animals = await window.animalService.getAnimals();
-  const medicines = window.mockData ? window.mockData.medicines : [];
+  let diseases = window.mockData && window.mockData.diseases ? window.mockData.diseases : [];
+  let medicines = window.mockData ? window.mockData.medicines : [];
+
+  if (window.supabaseClient) {
+    try {
+      const { data: dbDiseases } = await window.supabaseClient.from('diseases').select('*');
+      if (dbDiseases && dbDiseases.length > 0) diseases = dbDiseases;
+    } catch(e) { console.warn('Could not fetch diseases', e); }
+    try {
+      const { data: dbMedicines } = await window.supabaseClient.from('medicines').select('*');
+      if (dbMedicines && dbMedicines.length > 0) medicines = dbMedicines;
+    } catch(e) { console.warn('Could not fetch medicines', e); }
+  }
 
   if (!animals || animals.length === 0) {
     container.innerHTML = `
@@ -646,7 +663,11 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   }
 
   let animalOptions = animals.map(a => `<option value="${a.id}" ${a.id === preselectedAnimalId || a.animal_tag === preselectedAnimalId ? 'selected' : ''}>${a.animal_tag || a.id} - ${a.breed}</option>`).join('');
-  let medicineOptions = medicines.map(m => `<option value="${m.name}">${m.name} (${m.category})</option>`).join('');
+  let diseaseOptions = diseases.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+  let medicineOptions = medicines.map(m => `<option value="${m.id}">${m.name} (${m.category})</option>`).join('');
+
+  window.modalDiseases = diseases;
+  window.modalMedicines = medicines;
 
   container.innerHTML = `
     <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-start z-50 fade-in overflow-y-auto pt-10 pb-10">
@@ -657,8 +678,8 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
               <i data-lucide="syringe" class="w-6 h-6"></i>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-gray-800 brand-font">Log Treatment</h2>
-              <p class="text-sm text-gray-500 mt-1">Record medicine, dosage, and start withdrawal tracking.</p>
+              <h2 class="text-2xl font-bold text-gray-800 brand-font" data-i18n="modal.logTreatment.title">Log Treatment</h2>
+              <p class="text-sm text-gray-500 mt-1" data-i18n="modal.logTreatment.desc">Record medicine, dosage, and start withdrawal tracking.</p>
             </div>
           </div>
           <button onclick="document.getElementById('modal-container').innerHTML=''" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
@@ -669,7 +690,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
         <form id="treatment-form" class="space-y-5">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Select Animal <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.selectAnimal">Select Animal</span> <span class="text-red-500">*</span></label>
               <select id="trt-animal" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
                 <option value="" disabled selected>Search or select an animal...</option>
                 ${animalOptions}
@@ -677,25 +698,37 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Disease / Condition</label>
-              <input type="text" id="trt-disease" placeholder="e.g. Mastitis" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+              <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.disease">Disease / Condition</label>
+              ${diseases.length > 0 ? `
+              <select id="trt-disease" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+                <option value="" disabled selected>Search or select disease...</option>
+                ${diseaseOptions}
+              </select>
+              <p id="trt-disease-symptoms" class="text-xs text-primary mt-1 hidden font-medium"></p>
+              ` : '<p class="text-sm text-gray-500 italic p-2 bg-gray-50 rounded-lg border border-gray-100">No data found</p>'}
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Medicine Name <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.medicineName">Medicine Name</span> <span class="text-red-500">*</span></label>
+              ${medicines.length > 0 ? `
               <select id="trt-medicine" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
                 <option value="" disabled selected>Choose medicine</option>
                 ${medicineOptions}
               </select>
+              <div id="trt-medicine-info" class="mt-2 space-y-1 hidden bg-blue-50 p-2 rounded-lg border border-blue-100">
+                <p class="text-xs text-blue-800 flex items-center"><i data-lucide="tag" class="w-3 h-3 mr-1 opacity-70"></i> Category: <span id="trt-med-cat" class="ml-1 font-bold"></span></p>
+                <p class="text-xs text-red-600 flex items-center"><i data-lucide="alert-circle" class="w-3 h-3 mr-1 opacity-70"></i> Withdrawal: <span id="trt-med-withdraw" class="ml-1 font-bold"></span></p>
+              </div>
+              ` : '<p class="text-sm text-gray-500 italic p-2 bg-gray-50 rounded-lg border border-gray-100">No data found</p>'}
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Dosage <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.dosage">Dosage</span> <span class="text-red-500">*</span></label>
               <input type="text" id="trt-dosage" required placeholder="e.g. 15ml" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Route</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.route">Route</label>
               <select id="trt-route" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
                 <option value="Injection (IM)">Injection (IM)</option>
                 <option value="Injection (SC)">Injection (SC)</option>
@@ -705,31 +738,31 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.startDate">Start Date</span> <span class="text-red-500">*</span></label>
               <input type="date" id="trt-start-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">End Date <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.endDate">End Date</span> <span class="text-red-500">*</span></label>
               <input type="date" id="trt-end-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Prescribed By</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.prescribedBy">Prescribed By</label>
               <input type="text" id="trt-vet" placeholder="Dr. Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Instructions</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.notes">Notes / Instructions</label>
             <textarea id="trt-notes" rows="3" placeholder="Additional treatment notes..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"></textarea>
           </div>
 
           <div class="pt-5 flex justify-end space-x-3 border-t border-gray-100 mt-6">
-            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="px-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
+            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="px-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors" data-i18n="modal.cancel">Cancel</button>
             <button type="submit" id="trt-submit" class="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-md transition-all flex items-center hover:-translate-y-0.5">
               <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
-              <span>Save Treatment</span>
+              <span data-i18n="modal.saveTreatment">Save Treatment</span>
             </button>
           </div>
         </form>
@@ -738,7 +771,39 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   `;
   
   if(window.lucide) window.lucide.createIcons();
+  if(window.i18n) window.i18n.updateDOM();
   
+  setTimeout(() => {
+    const disSelect = document.getElementById('trt-disease');
+    if (disSelect) {
+      disSelect.addEventListener('change', (e) => {
+        const d = window.modalDiseases.find(x => x.id === e.target.value);
+        const sympEl = document.getElementById('trt-disease-symptoms');
+        if (d && d.symptoms) {
+          sympEl.textContent = 'Common Symptoms: ' + d.symptoms;
+          sympEl.classList.remove('hidden');
+        } else {
+          sympEl.classList.add('hidden');
+        }
+      });
+    }
+    
+    const medSelect = document.getElementById('trt-medicine');
+    if (medSelect) {
+      medSelect.addEventListener('change', (e) => {
+        const m = window.modalMedicines.find(x => x.id === e.target.value);
+        const infoEl = document.getElementById('trt-medicine-info');
+        if (m) {
+          document.getElementById('trt-med-cat').textContent = m.category || 'N/A';
+          document.getElementById('trt-med-withdraw').textContent = m.withdrawalMilk ? m.withdrawalMilk + ' Days (Milk)' : 'None';
+          infoEl.classList.remove('hidden');
+        } else {
+          infoEl.classList.add('hidden');
+        }
+      });
+    }
+  }, 50);
+
   // Set default dates
   const todayStr = formatDateForDB(new Date());
   document.getElementById('trt-start-date').value = todayStr;
@@ -766,8 +831,10 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     btn.classList.add('opacity-75', 'cursor-not-allowed');
     if(window.lucide) window.lucide.createIcons();
 
-    const selectedMedicine = document.getElementById('trt-medicine').value;
-    const medInfo = medicines.find(m => m.name === selectedMedicine);
+    const selectedMedicineId = document.getElementById('trt-medicine') ? document.getElementById('trt-medicine').value : '';
+    const selectedDiseaseId = document.getElementById('trt-disease') ? document.getElementById('trt-disease').value : null;
+
+    const medInfo = window.modalMedicines.find(m => m.id === selectedMedicineId);
     let withdrawal_end_date = end_date;
     
     if (medInfo && medInfo.withdrawalMilk) {
@@ -776,11 +843,15 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
       withdrawal_end_date = formatDateForDB(wDate);
     }
 
+    const diseaseInfo = window.modalDiseases.find(d => d.id === selectedDiseaseId);
+
     // Map data to schema
     const data = {
       animalId: document.getElementById('trt-animal').options[document.getElementById('trt-animal').selectedIndex].text.split(' - ')[0],
-      medicine: selectedMedicine,
-      disease: document.getElementById('trt-disease').value,
+      medicine_id: selectedMedicineId,
+      medicine: medInfo ? medInfo.name : '',
+      disease_id: selectedDiseaseId,
+      disease: diseaseInfo ? diseaseInfo.name : '',
       dose: document.getElementById('trt-dosage').value,
       route: document.getElementById('trt-route').value,
       start_date: start_date,

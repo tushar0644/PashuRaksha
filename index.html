@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PashuRaksha — Smart Livestock Care</title>
-  
-  <meta name="description" content="PashuRaksha - Smart Digital Farm Management Portal for Monitoring MRL and AMU in Livestock.">
-  
+
+  <meta name="description"
+    content="PashuRaksha - Smart Digital Farm Management Portal for Monitoring MRL and AMU in Livestock.">
+
   <!-- Toastify CSS -->
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-  
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <!-- Custom Tailwind Config -->
   <script>
     tailwind.config = {
@@ -39,55 +41,65 @@
 
   <!-- Custom Styles -->
   <link rel="stylesheet" href="css/styles.css">
-  
+
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
+
   <!-- Toastify JS -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body class="flex h-screen overflow-hidden">
 
   <!-- Sidebar -->
   <aside class="w-64 glass-panel m-4 flex flex-col justify-between hidden md:flex z-20">
     <div>
       <div class="p-6 border-b border-gray-100 flex justify-center items-center">
-        <img src="assets/logo.svg" alt="PashuRaksha Logo" class="h-16 w-auto object-contain hover:scale-105 transition-transform cursor-pointer" onclick="window.location.reload()">
+        <img src="assets/logo.svg" alt="PashuRaksha Logo"
+          class="h-16 w-auto object-contain hover:scale-105 transition-transform cursor-pointer"
+          onclick="window.location.reload()">
       </div>
-      
+
       <nav class="p-4 space-y-1.5 mt-2">
-        <a href="#" class="nav-item active flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600" data-view="dashboard">
+        <a href="#" class="nav-item active flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600"
+          data-view="dashboard">
           <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-          <span>Dashboard</span>
+          <span data-i18n="nav.dashboard">Dashboard</span>
         </a>
-        <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600" data-view="animals">
+        <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600"
+          data-view="animals">
           <i data-lucide="paw-print" class="w-5 h-5"></i>
-          <span>Animal Registry</span>
+          <span data-i18n="nav.animals">Animal Registry</span>
         </a>
-        <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600" data-view="treatments">
+        <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600"
+          data-view="treatments">
           <i data-lucide="syringe" class="w-5 h-5"></i>
-          <span>Treatment Logs</span>
+          <span data-i18n="nav.treatments">Treatment Logs</span>
         </a>
-        <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600" data-view="mrl">
+        <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600"
+          data-view="mrl">
           <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-          <span>MRL Tracker</span>
+          <span data-i18n="nav.mrl">MRL Tracker</span>
         </a>
-        <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600" data-view="reports">
+        <a href="#" class="nav-item flex items-center space-x-3 p-3 rounded-lg font-medium text-gray-600"
+          data-view="reports">
           <i data-lucide="file-bar-chart-2" class="w-5 h-5"></i>
-          <span>Reports</span>
+          <span data-i18n="nav.reports">Reports</span>
         </a>
       </nav>
     </div>
 
     <div class="p-4 border-t border-gray-100">
-      <div class="nav-item flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" data-view="profile">
-        <img src="https://ui-avatars.com/api/?name=Farm+Manager&background=059669&color=fff" alt="User" class="w-10 h-10 rounded-full shadow-sm">
+      <div class="nav-item flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+        data-view="profile">
+        <img src="https://ui-avatars.com/api/?name=Farm+Manager&background=059669&color=fff" alt="User"
+          class="w-10 h-10 rounded-full shadow-sm">
         <div>
           <p class="text-sm font-bold text-gray-800" id="sidebar-user-name">Tushar K.</p>
           <p class="text-xs text-gray-500" id="sidebar-farm-name">Green Valley Farm</p>
@@ -112,7 +124,7 @@
 
   <!-- Main Content -->
   <main class="flex-1 overflow-y-auto p-4 md:p-8 pt-24 md:pt-8 w-full">
-    
+
     <!-- Header Area -->
     <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 slide-up">
       <div>
@@ -120,13 +132,36 @@
         <p id="page-subtitle" class="text-gray-500 mt-1 text-sm">Overview of AMU and MRL Compliance.</p>
       </div>
       <div class="flex items-center space-x-3 w-full md:w-auto">
-        <button class="p-2.5 bg-white rounded-full shadow-sm hover:shadow hover:-translate-y-0.5 transition-all relative border border-gray-100">
+        <!-- Language Switcher -->
+        <div class="relative" id="language-dropdown-container">
+          <button onclick="toggleLanguageDropdown()" class="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+            <i data-lucide="globe" class="w-4 h-4 text-primary"></i>
+            <span id="current-lang-text">English 🇬🇧</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+          </button>
+          
+          <div id="language-menu" class="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-lg z-50 overflow-hidden transform opacity-100 scale-100 transition-all origin-top-right">
+            <div class="py-1">
+              <button onclick="selectLanguage('en')" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 hover:text-primary transition-colors flex items-center">
+                <span class="w-6">🇬🇧</span> English
+              </button>
+              <button onclick="selectLanguage('hi')" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 hover:text-primary transition-colors flex items-center">
+                <span class="w-6">🇮🇳</span> हिंदी (Hindi)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button
+          class="p-2.5 bg-white rounded-full shadow-sm hover:shadow hover:-translate-y-0.5 transition-all relative border border-gray-100">
           <i data-lucide="bell" class="text-gray-600 w-5 h-5"></i>
           <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
         </button>
-        <button class="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 hover:-translate-y-0.5" onclick="openAddTreatmentModal()">
+        <button
+          class="flex-1 md:flex-none bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 hover:-translate-y-0.5"
+          onclick="openAddTreatmentModal()">
           <i data-lucide="plus" class="w-4 h-4"></i>
-          <span>Log Treatment</span>
+          <span data-i18n="btn.logTreatment">Log Treatment</span>
         </button>
       </div>
     </header>
@@ -147,13 +182,22 @@
   <script src="js/utils/toast.js?v=2"></script>
   <script src="js/lib/auth.js?v=2"></script>
   <script src="js/services/userService.js?v=2"></script>
+  
+  <!-- i18n scripts -->
+  <script src="js/locales/en.js"></script>
+  <script src="js/locales/hi.js"></script>
+  <script src="js/lib/i18n.js"></script>
+
   <script src="js/services/animalService.js?v=2"></script>
   <script src="js/services/treatmentService.js?v=2"></script>
   <script src="js/services/dashboardService.js?v=2"></script>
+  <script src="js/services/aiService.js?v=2"></script>
   <script src="js/data.js?v=2"></script>
   <script src="js/app.js?v=2"></script>
+  <script src="js/components/rakshaAI.js?v=2"></script>
   <script>
     lucide.createIcons();
   </script>
 </body>
+
 </html>

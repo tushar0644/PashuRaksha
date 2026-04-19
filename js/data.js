@@ -15,6 +15,14 @@ const mockData = {
     { id: 'MED-05', name: 'FMD Vaccine', category: 'Vaccine', route: 'SC', withdrawalMilk: 0, withdrawalMeat: 0, residueLimit: 'N/A' }
   ],
 
+  diseases: [
+    { id: 'DIS-01', name: 'Mastitis', symptoms: 'Swollen udder, abnormal milk, fever' },
+    { id: 'DIS-02', name: 'Lameness', symptoms: 'Limping, reluctant to stand, swollen joints' },
+    { id: 'DIS-03', name: 'Respiratory Infection', symptoms: 'Coughing, nasal discharge, rapid breathing' },
+    { id: 'DIS-04', name: 'FMD', symptoms: 'Blisters in mouth and hooves, drooling' },
+    { id: 'DIS-05', name: 'Preventive', symptoms: 'Routine vaccination or deworming' }
+  ],
+
   treatments: [
     { id: 'TRT-1001', animalId: 'TAG-102', medicine: 'Oxytetracycline (LA)', date: '2026-04-15', dose: '20ml', vet: 'Dr. Sharma', disease: 'Mastitis' },
     { id: 'TRT-1002', animalId: 'TAG-104', medicine: 'Meloxicam', date: '2026-04-16', dose: '15ml', vet: 'Dr. Sharma', disease: 'Lameness' },

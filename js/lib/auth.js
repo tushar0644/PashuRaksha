@@ -105,6 +105,8 @@ class AuthService {
     if (!isAuthenticated) {
       if(mainContent) mainContent.style.filter = 'blur(5px)';
       if(sidebar) sidebar.style.pointerEvents = 'none';
+      const rakshaFab = document.getElementById('raksha-fab');
+      if(rakshaFab) rakshaFab.classList.add('hidden');
     } else {
       if(mainContent) mainContent.style.filter = 'none';
       if(sidebar) sidebar.style.pointerEvents = 'auto';
@@ -114,6 +116,9 @@ class AuthService {
       if(emailElem && this.currentUser) {
         emailElem.textContent = this.currentUser.email;
       }
+      
+      const rakshaFab = document.getElementById('raksha-fab');
+      if(rakshaFab) rakshaFab.classList.remove('hidden');
     }
   }
 
