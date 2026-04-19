@@ -3,6 +3,7 @@ class RakshaAIComponent {
     this.messages = this.loadHistory();
     this.isOpen = false;
     this.isTyping = false;
+    this.isCooldown = false;
     this.initUI();
   }
 
@@ -239,7 +240,7 @@ class RakshaAIComponent {
 
   async handleUserSubmit() {
     const text = this.els.input.value.trim();
-    if (!text || this.isTyping) return;
+    if (!text || this.isTyping || this.isCooldown) return;
 
     // Reset input
     this.els.input.value = '';
@@ -266,11 +267,47 @@ class RakshaAIComponent {
 
     } catch (error) {
       this.hideTypingIndicator();
+      
+      if (error.status === 429) {
+        // Handle Rate Limiting
+        this.isCooldown = true;
+        this.appendMessage({ 
+          role: 'assistant', 
+          content: "AI is busy right now. Please retry in 1 minute.", 
+          timestamp: new Date().toISOString() 
+        });
+        
+        // Disable UI for 30s
+        this.els.input.disabled = true;
+        this.els.input.placeholder = "Cooling down... (30s)";
+        
+        setTimeout(() => {
+          this.isCooldown = false;
+          this.els.input.disabled = false;
+          this.els.sendBtn.disabled = false;
+          this.els.input.placeholder = "Ask Raksha AI...";
+          this.els.input.focus();
+          
+          // Auto-retry once after cooldown
+          this.appendMessage({ 
+            role: 'assistant', 
+            content: "Retrying your last request now...", 
+            timestamp: new Date().toISOString() 
+          });
+          this.els.input.value = text;
+          this.handleUserSubmit();
+        }, 30000);
+        
+        return;
+      }
+
       window.showToast(error.message || 'Failed to connect to Raksha AI API.', 'error');
       this.appendMessage({ role: 'assistant', content: "I'm having trouble connecting to my brain. Please try again in a moment.", timestamp: new Date().toISOString() });
     } finally {
-      this.els.sendBtn.disabled = false;
-      this.isTyping = false;
+      if (!this.isCooldown) {
+        this.els.sendBtn.disabled = false;
+        this.isTyping = false;
+      }
       this.scrollToBottom();
     }
   }

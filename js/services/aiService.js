@@ -89,6 +89,11 @@ class AIService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 429) {
+          const err = new Error('Rate limit exceeded');
+          err.status = 429;
+          throw err;
+        }
         throw new Error(`AI Service Error (${response.status})`);
       }
 
