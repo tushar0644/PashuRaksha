@@ -628,18 +628,36 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
 
   // Fetch data
   const animals = await window.animalService.getAnimals();
-  let diseases = window.mockData && window.mockData.diseases ? window.mockData.diseases : [];
-  let medicines = window.mockData ? window.mockData.medicines : [];
+  let diseases = [];
+  let medicines = [];
 
   if (window.supabaseClient) {
-    try {
-      const { data: dbDiseases } = await window.supabaseClient.from('diseases').select('*');
-      if (dbDiseases && dbDiseases.length > 0) diseases = dbDiseases;
-    } catch(e) { console.warn('Could not fetch diseases', e); }
-    try {
-      const { data: dbMedicines } = await window.supabaseClient.from('medicines').select('*');
-      if (dbMedicines && dbMedicines.length > 0) medicines = dbMedicines;
-    } catch(e) { console.warn('Could not fetch medicines', e); }
+    // 1. Fetch Diseases
+    const { data: dbDiseases, error: diseaseError } = await window.supabaseClient
+      .from('diseases')
+      .select('id, name, symptoms');
+      
+    if (diseaseError) {
+      console.error('Error fetching diseases:', diseaseError);
+      diseases = window.mockData && window.mockData.diseases ? window.mockData.diseases : [];
+    } else {
+      diseases = dbDiseases || [];
+    }
+
+    // 2. Fetch Medicines
+    const { data: dbMedicines, error: medError } = await window.supabaseClient
+      .from('medicines')
+      .select('id, name, category, withdrawal_milk, withdrawal_meat, residue_limit');
+      
+    if (medError) {
+      console.error('Error fetching medicines:', medError);
+      medicines = window.mockData ? window.mockData.medicines : [];
+    } else {
+      medicines = dbMedicines || [];
+    }
+  } else {
+    diseases = window.mockData && window.mockData.diseases ? window.mockData.diseases : [];
+    medicines = window.mockData ? window.mockData.medicines : [];
   }
 
   if (!animals || animals.length === 0) {
@@ -794,8 +812,11 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
         const m = window.modalMedicines.find(x => x.id === e.target.value);
         const infoEl = document.getElementById('trt-medicine-info');
         if (m) {
-          document.getElementById('trt-med-cat').textContent = m.category || 'N/A';
-          document.getElementById('trt-med-withdraw').textContent = m.withdrawalMilk ? m.withdrawalMilk + ' Days (Milk)' : 'None';
+          const category = m.category || 'N/A';
+          const withdrawalDays = m.withdrawalMilk !== undefined ? m.withdrawalMilk : (m.withdrawal_milk || 0);
+          
+          document.getElementById('trt-med-cat').textContent = category;
+          document.getElementById('trt-med-withdraw').textContent = withdrawalDays ? withdrawalDays + ' Days (Milk)' : 'None';
           infoEl.classList.remove('hidden');
         } else {
           infoEl.classList.add('hidden');
@@ -837,10 +858,13 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     const medInfo = window.modalMedicines.find(m => m.id === selectedMedicineId);
     let withdrawal_end_date = end_date;
     
-    if (medInfo && medInfo.withdrawalMilk) {
-      const wDate = new Date(end_date);
-      wDate.setDate(wDate.getDate() + medInfo.withdrawalMilk);
-      withdrawal_end_date = formatDateForDB(wDate);
+    if (medInfo) {
+      const withdrawalDays = medInfo.withdrawalMilk !== undefined ? medInfo.withdrawalMilk : (medInfo.withdrawal_milk || 0);
+      if (withdrawalDays > 0) {
+        const wDate = new Date(end_date);
+        wDate.setDate(wDate.getDate() + withdrawalDays);
+        withdrawal_end_date = formatDateForDB(wDate);
+      }
     }
 
     const diseaseInfo = window.modalDiseases.find(d => d.id === selectedDiseaseId);
