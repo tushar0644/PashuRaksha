@@ -1,8 +1,6 @@
 class AIService {
   constructor() {
-    // Configured via config.js
-    this.apiKey = window.OPENAI_API_KEY || '';
-    this.endpoint = 'https://api.openai.com/v1/chat/completions';
+    this.endpoint = 'https://wgfbmdhhjaybgrpqojef.supabase.co/functions/v1/raksha-ai';
   }
 
   async generateFarmContext() {
@@ -71,78 +69,38 @@ class AIService {
     return context;
   }
 
-  getSystemPrompt(farmContext) {
-    return `You are Raksha AI, a smart, polite, and expert livestock assistant for the "PashuRaksha" farm management app. 
-Tagline: Helping Farmers Make Better Decisions.
-
-Your capabilities:
-1. Provide insights on the user's farm based on the provided context.
-2. Provide first-level guidance on animal health symptoms (fever, limping, milk drop, etc.).
-3. Assist with MRL (Maximum Residue Limit) and withdrawal period questions.
-
-Safety Rules:
-- If a user reports severe medical symptoms, ALWAYS advise them to consult a licensed veterinarian.
-- Add a short disclaimer if giving medical advice: "(Note: AI guidance is informational. Please consult a vet for severe cases.)"
-- Support English and Hindi seamlessly.
-
-Here is the current live data for the user's farm:
-${farmContext}
-
-Keep your responses concise, modern, and easily readable. Use bullet points where appropriate.`;
-  }
-
-  async sendMessage(messages) {
-    if (!this.apiKey || this.apiKey === 'YOUR_OPENAI_API_KEY') {
-      // Fallback Demo Mode if no API key is provided
-      await new Promise(r => setTimeout(r, 1500)); // Simulate delay
-      const lastUserMessage = messages[messages.length - 1].content.toLowerCase();
-      
-      let reply = "Namaste! I am Raksha AI. Please add your OpenAI API Key in `js/config.js` to enable my full intelligence.";
-      
-      if (lastUserMessage.includes('treatment') || lastUserMessage.includes('under treatment')) {
-        const farmContext = await this.generateFarmContext();
-        reply = "Here is what I found:\n" + farmContext;
-      } else if (lastUserMessage.includes('milk') || lastUserMessage.includes('withdrawal')) {
-        reply = "I see you're asking about milk withdrawal. Please check the treatment logs. Animals under active withdrawal periods should NOT have their milk sold for human consumption. (Note: AI guidance is informational.)";
-      } else if (lastUserMessage.includes('fever') || lastUserMessage.includes('sick')) {
-        reply = "Fever can indicate an infection. Please isolate the animal and monitor its temperature. (Note: AI guidance is informational. Please consult a vet for severe cases.)";
-      }
-
-      return reply;
-    }
-
-    const farmContext = await this.generateFarmContext();
-    const systemPrompt = this.getSystemPrompt(farmContext);
-
-    const apiMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages
-    ];
+  async sendMessage(userInput) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
     try {
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+          'Authorization': `Bearer ${window.ENV?.SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: apiMessages,
-          temperature: 0.7,
-          max_tokens: 500
-        })
+          message: userInput
+        }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || 'API Error');
+        throw new Error(`AI Service Error (${response.status})`);
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      return data.reply || "I'm sorry, I couldn't process that request.";
+
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('AI Service Error:', error);
+      if (error.name === 'AbortError') {
+        throw new Error("Request timed out. Please try again.");
+      }
       throw error;
     }
   }

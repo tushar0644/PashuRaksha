@@ -163,7 +163,8 @@ class RakshaAIComponent {
   appendMessage(msg) {
     const isUser = msg.role === 'user';
     const div = document.createElement('div');
-    div.className = `flex flex-col ${isUser ? 'items-end' : 'items-start'} animate-fade-in`;
+    div.className = `flex flex-col ${isUser ? 'items-end' : 'items-start'} animate-fade-in mb-4`;
+    if(msg.id) div.id = msg.id;
     
     const timeHtml = `<span class="text-[10px] text-gray-400 mt-1 mx-1">${this.formatTime(msg.timestamp)}</span>`;
     
@@ -174,7 +175,7 @@ class RakshaAIComponent {
             <i data-lucide="bot" class="w-3 h-3 text-primary-dark"></i>
           </div>
         ` : ''}
-        <div class="px-4 py-2.5 rounded-2xl ${isUser ? 'bg-primary text-white rounded-br-sm shadow-md' : 'bg-white border border-gray-100 text-gray-800 rounded-bl-sm shadow-sm'} text-sm leading-relaxed whitespace-pre-wrap">
+        <div class="msg-bubble px-4 py-2.5 rounded-2xl ${isUser ? 'bg-primary text-white rounded-br-sm shadow-md' : 'bg-white border border-gray-100 text-gray-800 rounded-bl-sm shadow-sm'} text-sm leading-relaxed whitespace-pre-wrap">
           ${msg.content}
         </div>
       </div>
@@ -184,6 +185,14 @@ class RakshaAIComponent {
     div.innerHTML = innerHtml;
     this.els.messagesBox.appendChild(div);
     if(window.lucide) window.lucide.createIcons();
+  }
+
+  updateMessage(id, content) {
+    const div = document.getElementById(id);
+    if (div) {
+      const bubble = div.querySelector('.msg-bubble');
+      if (bubble) bubble.textContent = content;
+    }
   }
 
   showTypingIndicator() {
@@ -246,22 +255,22 @@ class RakshaAIComponent {
     this.els.sendBtn.disabled = true;
 
     try {
-      // Exclude timestamps from API payload for cleaner context
-      const apiMessages = this.messages.map(m => ({ role: m.role, content: m.content }));
-      const responseContent = await window.aiService.sendMessage(apiMessages);
+      const responseContent = await window.aiService.sendMessage(text);
+      
+      this.hideTypingIndicator();
       
       const aiMsg = { role: 'assistant', content: responseContent, timestamp: new Date().toISOString() };
       this.messages.push(aiMsg);
       this.saveHistory();
-      
-      this.hideTypingIndicator();
       this.appendMessage(aiMsg);
+
     } catch (error) {
       this.hideTypingIndicator();
-      window.showToast('Failed to connect to Raksha AI. Please check your config.', 'error');
-      this.appendMessage({ role: 'assistant', content: "I'm having trouble connecting to my brain. Please ensure your OpenAI API Key is set in js/config.js.", timestamp: new Date().toISOString() });
+      window.showToast(error.message || 'Failed to connect to Raksha AI API.', 'error');
+      this.appendMessage({ role: 'assistant', content: "I'm having trouble connecting to my brain. Please try again in a moment.", timestamp: new Date().toISOString() });
     } finally {
       this.els.sendBtn.disabled = false;
+      this.isTyping = false;
       this.scrollToBottom();
     }
   }

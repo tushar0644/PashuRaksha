@@ -1,0 +1,27 @@
+{
+  "name": "agritrack",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000P\u0000a\u0000s\u0000h\u0000u\u0000R\u0000a\u0000k\u0000s\u0000h\u0000a\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tushar0644/PashuRaksha.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tushar0644/PashuRaksha/issues"
+  },
+  "homepage": "https://github.com/tushar0644/PashuRaksha#readme",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}
