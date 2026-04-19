@@ -1116,22 +1116,46 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     }
   }, 50);
 
-  // Set default dates
-  const todayStr = formatDateForDB(new Date());
-  document.getElementById('trt-start-date').value = todayStr;
-  document.getElementById('trt-end-date').value = todayStr;
+  // Set default dates (Today in local YYYY-MM-DD format)
+  const today = new Date();
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  
+  setTimeout(() => {
+    const startInput = document.getElementById('trt-start-date');
+    const endInput = document.getElementById('trt-end-date');
+    if (startInput) startInput.value = todayStr;
+    if (endInput) endInput.value = todayStr;
+  }, 100);
 
   // Handle form submission
   document.getElementById('treatment-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    console.log('Log Treatment Form Submitted');
     
+    const animalId = document.getElementById('trt-animal').value;
+    const medicineId = document.getElementById('trt-medicine').value;
     const startDateVal = document.getElementById('trt-start-date').value;
     const endDateVal = document.getElementById('trt-end-date').value;
     
-    const start_date = formatDateForDB(startDateVal);
-    const end_date = formatDateForDB(endDateVal);
+    // Explicit Validation for better UX
+    if (!animalId) {
+        window.showToast('Please select an animal first.', 'warning');
+        return;
+    }
+    if (!medicineId) {
+        window.showToast('Please select a medicine.', 'warning');
+        return;
+    }
     
-    if (!start_date || !end_date || new Date(start_date) > new Date(end_date)) {
+    const start_date = startDateVal;
+    const end_date = endDateVal;
+    
+    if (!start_date || !end_date) {
+      window.showToast('Please provide both start and end dates.', 'error');
+      return;
+    }
+
+    if (new Date(start_date) > new Date(end_date)) {
       window.showToast('Invalid date range. End date must be after start date.', 'error');
       return;
     }
