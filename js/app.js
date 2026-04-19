@@ -647,7 +647,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     // 2. Fetch Medicines
     const { data: dbMedicines, error: medError } = await window.supabaseClient
       .from('medicines')
-      .select('id, name, category, withdrawal_milk, withdrawal_meat, residue_limit');
+      .select('id, name, category, withdrawal_milk_days');
       
     if (medError) {
       console.error('Error fetching medicines:', medError);
@@ -813,7 +813,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
         const infoEl = document.getElementById('trt-medicine-info');
         if (m) {
           const category = m.category || 'N/A';
-          const withdrawalDays = m.withdrawalMilk !== undefined ? m.withdrawalMilk : (m.withdrawal_milk || 0);
+          const withdrawalDays = m.withdrawal_milk_days !== undefined ? m.withdrawal_milk_days : (m.withdrawalMilk || 0);
           
           document.getElementById('trt-med-cat').textContent = category;
           document.getElementById('trt-med-withdraw').textContent = withdrawalDays ? withdrawalDays + ' Days (Milk)' : 'None';
@@ -859,7 +859,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     let withdrawal_end_date = end_date;
     
     if (medInfo) {
-      const withdrawalDays = medInfo.withdrawalMilk !== undefined ? medInfo.withdrawalMilk : (medInfo.withdrawal_milk || 0);
+      const withdrawalDays = medInfo.withdrawal_milk_days !== undefined ? medInfo.withdrawal_milk_days : (medInfo.withdrawalMilk || 0);
       if (withdrawalDays > 0) {
         const wDate = new Date(end_date);
         wDate.setDate(wDate.getDate() + withdrawalDays);
