@@ -57,12 +57,15 @@
 
 <body class="flex h-screen overflow-hidden">
 
+  <!-- Mobile Sidebar Overlay -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden transition-opacity opacity-0 md:hidden"></div>
+
   <!-- Sidebar -->
-  <aside class="w-64 glass-panel m-4 flex flex-col justify-between hidden md:flex z-20">
+  <aside id="sidebar" class="w-64 glass-panel flex flex-col justify-between fixed inset-y-0 left-0 z-50 transform -translate-x-full transition duration-300 ease-in-out md:relative md:translate-x-0 md:m-4 md:flex">
     <div>
       <div class="p-6 border-b border-gray-100 flex justify-center items-center">
         <img src="assets/logo.svg" alt="PashuRaksha Logo"
-          class="h-16 w-auto object-contain hover:scale-105 transition-transform cursor-pointer"
+          class="h-28 w-auto object-contain hover:scale-105 transition-transform cursor-pointer"
           onclick="window.location.reload()">
       </div>
 
@@ -111,11 +114,8 @@
 
   <!-- Mobile Header -->
   <div class="md:hidden fixed top-0 left-0 right-0 glass-panel m-2 p-4 flex justify-between items-center z-30">
-    <div class="flex items-center space-x-2">
-      <div class="bg-primary text-white p-1.5 rounded-lg shadow-sm">
-        <i data-lucide="shield-check" class="w-5 h-5"></i>
-      </div>
-      <h1 class="text-xl font-bold text-gray-800 brand-font">PashuRaksha</h1>
+    <div class="flex items-center">
+      <img src="assets/logo.svg" alt="PashuRaksha Logo" class="h-10 w-auto object-contain cursor-pointer" onclick="window.location.reload()">
     </div>
     <button id="mobile-menu-btn" class="text-gray-600 p-1 hover:bg-gray-100 rounded-lg">
       <i data-lucide="menu"></i>
@@ -197,6 +197,34 @@
   <script src="js/components/rakshaAI.js?v=2"></script>
   <script>
     lucide.createIcons();
+    
+    // Mobile menu toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    function toggleSidebar() {
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+      if (isClosed) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+        setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 300);
+      }
+    }
+    
+    mobileMenuBtn.addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', toggleSidebar);
+    
+    // Close sidebar on mobile when a nav item is clicked
+    document.querySelectorAll('#sidebar .nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth < 768) toggleSidebar();
+      });
+    });
   </script>
 </body>
 

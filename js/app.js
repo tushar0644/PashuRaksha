@@ -302,6 +302,37 @@ async function renderAnimals(container) {
     </tr>
   `}).join('');
 
+  let mobileCards = animals.map(a => {
+      const rawStatus = a.health_status || a.status || 'healthy';
+      const formattedStatus = rawStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const statusColor = rawStatus.toLowerCase() === 'healthy' ? 'status-safe' 
+                        : (rawStatus.toLowerCase() === 'observation' ? 'status-warning' : 'status-danger');
+
+      return `
+    <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-3">
+      <div class="flex justify-between items-start">
+        <div>
+          <h4 class="font-bold text-gray-900 text-base">${a.animal_tag || a.id}</h4>
+          <p class="text-sm text-gray-500">${a.breed} • ${a.age || a.weight}</p>
+        </div>
+        <span class="status-pill ${statusColor} text-[10px] py-0.5 px-2">
+          ${formattedStatus}
+        </span>
+      </div>
+      <div class="flex justify-between items-center text-xs text-gray-500 border-t border-gray-50 pt-2">
+        <span>Last Check: ${a.lastCheck || new Date(a.created_at).toLocaleDateString() || 'N/A'}</span>
+        <div class="flex space-x-2">
+          <button class="text-red-400 hover:text-red-600 p-2" onclick="if(confirm('Are you sure you want to remove this animal?')) window.animalService.deleteAnimal('${a.id}').then(() => document.querySelector('[data-view=\\'animals\\']').click())">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+          <button class="bg-emerald-50 text-primary px-3 py-1.5 rounded-lg font-medium shadow-sm flex items-center" onclick="window.openAddTreatmentModal('${a.id}')">
+            <i data-lucide="syringe" class="w-3 h-3 mr-1"></i> Treat
+          </button>
+        </div>
+      </div>
+    </div>
+  `}).join('');
+
   container.innerHTML = `
     <div class="glass-panel overflow-hidden slide-up">
       <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white flex-wrap gap-4">
@@ -317,7 +348,7 @@ async function renderAnimals(container) {
           </button>
         </div>
       </div>
-      <div class="overflow-x-auto">
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
@@ -333,6 +364,10 @@ async function renderAnimals(container) {
             ${rows}
           </tbody>
         </table>
+      </div>
+      <!-- Mobile Cards -->
+      <div class="md:hidden flex flex-col bg-gray-50">
+        ${mobileCards}
       </div>
     </div>
   `;
@@ -357,12 +392,33 @@ async function renderTreatments(container) {
     </tr>
   `}).join('');
 
+  let mobileCards = treatments.map(t => {
+    const date = t.treatment_date ? new Date(t.treatment_date).toLocaleDateString() : t.date;
+    const tag = t.animals ? t.animals.animal_tag : t.animalId;
+    const medName = t.medicines ? t.medicines.name : t.medicine;
+    
+    return `
+    <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-2">
+      <div class="flex justify-between items-start">
+        <h4 class="font-bold text-primary text-base">${tag}</h4>
+        <span class="text-xs text-gray-500 font-medium">${date}</span>
+      </div>
+      <div>
+        <p class="text-sm font-bold text-gray-800">${medName} <span class="text-gray-500 font-normal">(${t.dosage || t.dose || 'N/A'})</span></p>
+        <p class="text-sm text-gray-600 mt-1"><span class="text-gray-400 text-xs uppercase">Diagnosis:</span> ${t.disease || t.notes || 'N/A'}</p>
+      </div>
+      <div class="flex justify-between items-center text-xs text-gray-500 border-t border-gray-50 pt-2 mt-2">
+        <span><i data-lucide="user" class="w-3 h-3 inline mr-1"></i>${t.vet_id || t.vet || 'Unknown'}</span>
+      </div>
+    </div>
+  `}).join('');
+
   container.innerHTML = `
     <div class="glass-panel overflow-hidden slide-up">
       <div class="p-6 border-b border-gray-100 bg-white">
         <h3 class="text-lg font-bold text-gray-800 brand-font">Recent Treatments</h3>
       </div>
-      <div class="overflow-x-auto">
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
@@ -378,6 +434,10 @@ async function renderTreatments(container) {
             ${rows}
           </tbody>
         </table>
+      </div>
+      <!-- Mobile Cards -->
+      <div class="md:hidden flex flex-col bg-gray-50">
+        ${mobileCards}
       </div>
     </div>
   `;
@@ -417,6 +477,37 @@ async function renderMRL(container) {
     `;
   }).join('');
 
+  let mobileCards = treatments.map(t => {
+    const medName = t.medicines ? t.medicines.name : t.medicine;
+    const med = mockData.medicines.find(m => m.name === medName);
+    if(!med) return '';
+    
+    const dateStr = t.treatment_date || t.date;
+    const tag = t.animals ? t.animals.animal_tag : t.animalId;
+    
+    const milkStatus = getMRLStatus(dateStr, med.withdrawalMilk);
+    const milkEnd = calculateWithdrawal(dateStr, med.withdrawalMilk).toISOString().split('T')[0];
+    
+    return `
+    <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-2">
+      <div class="flex justify-between items-start">
+        <h4 class="font-bold text-gray-900 text-base">${tag}</h4>
+        <span class="status-pill ${milkStatus.color === 'safe' ? 'status-safe' : (milkStatus.color === 'warning' ? 'status-warning' : 'status-danger')} text-[10px] py-0.5 px-2">
+          ${milkStatus.status}
+        </span>
+      </div>
+      <div>
+        <p class="text-sm font-bold text-gray-800">${medName}</p>
+        <p class="text-sm text-gray-600 mt-1">Treated: ${dateStr.substring(0, 10)}</p>
+      </div>
+      <div class="flex justify-between items-center text-xs border-t border-gray-50 pt-2 mt-2">
+        <span class="text-gray-500">Safe Release:</span>
+        <span class="${milkStatus.status !== 'Safe' ? 'text-red-500 font-bold' : 'text-emerald-600 font-bold'}">${med.withdrawalMilk === 0 ? 'Immediately' : milkEnd}</span>
+      </div>
+    </div>
+    `;
+  }).join('');
+
   container.innerHTML = `
     <div class="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-xl border border-emerald-100 mb-8 slide-up flex items-center justify-between">
       <div>
@@ -434,7 +525,7 @@ async function renderMRL(container) {
       <div class="p-6 border-b border-gray-100 bg-white">
         <h3 class="text-lg font-bold text-gray-800 brand-font">Withdrawal Period Tracker</h3>
       </div>
-      <div class="overflow-x-auto">
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-gray-50 text-gray-500 text-sm uppercase tracking-wider">
@@ -449,6 +540,10 @@ async function renderMRL(container) {
             ${rows}
           </tbody>
         </table>
+      </div>
+      <!-- Mobile Cards -->
+      <div class="md:hidden flex flex-col bg-gray-50">
+        ${mobileCards}
       </div>
     </div>
   `;
@@ -688,9 +783,9 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   window.modalMedicines = medicines;
 
   container.innerHTML = `
-    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-start z-50 fade-in overflow-y-auto pt-10 pb-10">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-8 m-4 relative mt-10">
-        <div class="flex justify-between items-center mb-6">
+    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex justify-center items-end md:items-start z-50 fade-in">
+      <div class="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full max-w-2xl p-6 md:p-8 m-0 md:m-4 relative md:mt-10 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pb-2">
           <div class="flex items-center space-x-3">
             <div class="bg-emerald-50 text-primary p-2 rounded-lg">
               <i data-lucide="syringe" class="w-6 h-6"></i>
@@ -771,15 +866,15 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
             </div>
           </div>
           
-          <div>
+          <div class="md:col-span-2 pb-20 md:pb-0">
             <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.notes">Notes / Instructions</label>
-            <textarea id="trt-notes" rows="3" placeholder="Additional treatment notes..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"></textarea>
+            <textarea id="trt-notes" rows="3" placeholder="Additional treatment notes..." class="w-full px-4 py-3 md:py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"></textarea>
           </div>
 
-          <div class="pt-5 flex justify-end space-x-3 border-t border-gray-100 mt-6">
-            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="px-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors" data-i18n="modal.cancel">Cancel</button>
-            <button type="submit" id="trt-submit" class="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-md transition-all flex items-center hover:-translate-y-0.5">
-              <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+          <div class="fixed md:static bottom-0 left-0 right-0 p-4 md:p-0 md:pt-5 bg-white md:bg-transparent border-t border-gray-100 flex flex-col md:flex-row justify-end md:space-x-3 mt-6 z-20 shadow-[0_-10px_15px_-3px_rgb(0,0,0,0.05)] md:shadow-none space-y-3 md:space-y-0">
+            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="w-full md:w-auto px-6 py-3.5 md:py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 font-medium transition-colors order-2 md:order-1" data-i18n="modal.cancel">Cancel</button>
+            <button type="submit" id="trt-submit" class="w-full md:w-auto px-6 py-3.5 md:py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark font-medium shadow-md transition-all flex justify-center items-center hover:-translate-y-0.5 order-1 md:order-2">
+              <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
               <span data-i18n="modal.saveTreatment">Save Treatment</span>
             </button>
           </div>
@@ -912,9 +1007,9 @@ window.openAddAnimalModal = function() {
   const container = document.getElementById('modal-container');
   
   container.innerHTML = `
-    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-start z-50 fade-in overflow-y-auto pt-10 pb-10">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 m-4 relative mt-10">
-        <div class="flex justify-between items-center mb-6">
+    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex justify-center items-end md:items-start z-50 fade-in">
+      <div class="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full max-w-lg p-6 md:p-8 m-0 md:m-4 relative md:mt-10 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pb-2">
           <div class="flex items-center space-x-3">
             <div class="bg-emerald-50 text-primary p-2 rounded-lg">
               <i data-lucide="paw-print" class="w-6 h-6"></i>
@@ -933,36 +1028,36 @@ window.openAddAnimalModal = function() {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Animal ID / Tag <span class="text-red-500">*</span></label>
-              <input type="text" id="anm-id" required placeholder="e.g. TAG-106" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+              <input type="text" id="anm-id" required placeholder="e.g. TAG-106" class="w-full px-4 py-3 md:py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
-              <input type="text" id="anm-breed" placeholder="e.g. Holstein" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+              <input type="text" id="anm-breed" placeholder="e.g. Holstein" class="w-full px-4 py-3 md:py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Age</label>
-              <input type="text" id="anm-age" placeholder="e.g. 2 years" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+              <input type="text" id="anm-age" placeholder="e.g. 2 years" class="w-full px-4 py-3 md:py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
-              <input type="text" id="anm-weight" placeholder="e.g. 500kg" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+              <input type="text" id="anm-weight" placeholder="e.g. 500kg" class="w-full px-4 py-3 md:py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
           </div>
 
-          <div>
+          <div class="pb-20 md:pb-0">
             <label class="block text-sm font-medium text-gray-700 mb-1">Health Status</label>
-            <select id="anm-status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+            <select id="anm-status" class="w-full px-4 py-3 md:py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
               <option value="healthy">Healthy</option>
               <option value="observation">Observation</option>
               <option value="under_treatment">Under Treatment</option>
             </select>
           </div>
 
-          <div class="pt-5 flex justify-end space-x-3 border-t border-gray-100 mt-6">
-            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="px-6 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
-            <button type="submit" id="anm-submit" class="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-md transition-all flex items-center hover:-translate-y-0.5">
-              <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+          <div class="fixed md:static bottom-0 left-0 right-0 p-4 md:p-0 md:pt-5 bg-white md:bg-transparent border-t border-gray-100 flex flex-col md:flex-row justify-end md:space-x-3 mt-6 z-20 shadow-[0_-10px_15px_-3px_rgb(0,0,0,0.05)] md:shadow-none space-y-3 md:space-y-0">
+            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="w-full md:w-auto px-6 py-3.5 md:py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 font-medium transition-colors order-2 md:order-1">Cancel</button>
+            <button type="submit" id="anm-submit" class="w-full md:w-auto px-6 py-3.5 md:py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark font-medium shadow-md transition-all flex justify-center items-center hover:-translate-y-0.5 order-1 md:order-2">
+              <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
               <span>Register Animal</span>
             </button>
           </div>

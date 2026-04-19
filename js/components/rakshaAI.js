@@ -30,7 +30,7 @@ class RakshaAIComponent {
       </button>
 
       <!-- Chat Panel -->
-      <div id="raksha-panel" class="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden z-50 transform scale-0 opacity-0 origin-bottom-right transition-all duration-300">
+      <div id="raksha-panel" class="fixed inset-0 md:inset-auto md:bottom-24 md:right-6 md:w-96 w-full h-full md:h-auto bg-white md:rounded-2xl shadow-2xl md:border border-gray-100 flex flex-col overflow-hidden z-50 transform scale-0 opacity-0 origin-bottom md:origin-bottom-right transition-all duration-300">
         
         <!-- Header -->
         <div class="bg-gradient-to-r from-primary to-primary-light text-white p-4 flex justify-between items-center shadow-sm z-10">
@@ -54,7 +54,7 @@ class RakshaAIComponent {
         </div>
 
         <!-- Chat Area -->
-        <div id="raksha-messages" class="flex-1 p-4 overflow-y-auto bg-[#f8fafc] space-y-4 h-96 relative">
+        <div id="raksha-messages" class="flex-1 p-4 overflow-y-auto bg-[#f8fafc] space-y-4 h-auto md:h-96 relative pb-20 md:pb-4">
           <!-- Welcome Message is dynamically inserted if empty -->
         </div>
 
