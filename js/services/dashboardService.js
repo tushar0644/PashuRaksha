@@ -29,7 +29,7 @@ class DashboardService {
         .from('live_health_sensor')
         .select('*')
         .order('recorded_at', { ascending: false })
-        .limit(5);
+        .limit(6);
       
       if (error) throw error;
       return data || [];

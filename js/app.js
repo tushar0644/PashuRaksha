@@ -29,6 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return d.toISOString().split('T')[0];
   }
 
+  function timeAgo(date) {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hrs ago`;
+    return new Date(date).toLocaleDateString();
+  }
+
   const views = {
     dashboard: {
       title: 'Dashboard',
@@ -395,58 +405,81 @@ async function renderDashboard(container) {
 
   // Health Scanner Update Logic
   async function updateHealthScanner() {
-    const logs = await window.dashboardService.getLiveHealthLogs();
     const scannerContent = document.getElementById('health-scanner-content');
     if (!scannerContent) {
-      clearInterval(window.healthScannerInterval);
+      if (window.healthScannerInterval) clearInterval(window.healthScannerInterval);
       return;
     }
 
-    if (!logs || logs.length === 0) {
-      scannerContent.innerHTML = '<p class="text-sm text-gray-500 col-span-full text-center py-8">No live health data received yet.</p>';
-      return;
-    }
-
-    scannerContent.innerHTML = logs.map(log => {
-      const statusColors = {
-        'Healthy': 'bg-emerald-50 text-emerald-600 border-emerald-100',
-        'Normal': 'bg-blue-50 text-blue-600 border-blue-100',
-        'Alert': 'bg-orange-50 text-orange-600 border-orange-100',
-        'Critical': 'bg-red-50 text-red-600 border-red-100'
-      };
-      const statusColor = statusColors[log.status] || 'bg-gray-50 text-gray-600 border-gray-100';
-
-      return `
-        <div class="p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-all border-gray-100">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Animal</p>
-              <h4 class="text-base font-bold text-gray-800">${log.animal_code}</h4>
-            </div>
-            <div class="px-2 py-1 rounded-lg ${statusColor} text-[10px] font-bold border">
-              ${log.status}
-            </div>
+    // Show skeletons only on first load or if requested
+    if (scannerContent.innerHTML.includes('loader-2') || scannerContent.childElementCount === 0) {
+      scannerContent.innerHTML = Array(6).fill(0).map(() => `
+        <div class="p-4 border border-gray-100 rounded-xl bg-white/50 animate-pulse">
+          <div class="flex justify-between mb-4">
+            <div class="h-4 w-20 bg-gray-200 rounded"></div>
+            <div class="h-4 w-12 bg-gray-200 rounded"></div>
           </div>
-          
           <div class="grid grid-cols-3 gap-2">
-            <div class="text-center p-2 bg-gray-50 rounded-lg">
-              <p class="text-[8px] text-gray-400 uppercase font-bold">BPM</p>
-              <p class="text-sm font-bold text-gray-800">${log.heart_rate}</p>
-            </div>
-            <div class="text-center p-2 bg-gray-50 rounded-lg">
-              <p class="text-[8px] text-gray-400 uppercase font-bold">Temp</p>
-              <p class="text-sm font-bold text-gray-800">${log.temperature}°C</p>
-            </div>
-            <div class="text-center p-2 bg-gray-50 rounded-lg">
-              <p class="text-[8px] text-gray-400 uppercase font-bold">Fat</p>
-              <p class="text-sm font-bold text-gray-800">${log.body_fat}%</p>
-            </div>
+            <div class="h-8 bg-gray-100 rounded"></div>
+            <div class="h-8 bg-gray-100 rounded"></div>
+            <div class="h-8 bg-gray-100 rounded"></div>
           </div>
-
-          <p class="text-[9px] text-gray-400 mt-3 text-right">Synced: ${new Date(log.recorded_at).toLocaleTimeString()}</p>
         </div>
-      `;
-    }).join('');
+      `).join('');
+    }
+
+    try {
+      const logs = await window.dashboardService.getLiveHealthLogs();
+      
+      if (!logs || logs.length === 0) {
+        scannerContent.innerHTML = '<p class="text-sm text-gray-500 col-span-full text-center py-8">No live health data received yet.</p>';
+        return;
+      }
+
+      scannerContent.innerHTML = logs.map(log => {
+        const statusColors = {
+          'Healthy': 'bg-emerald-50 text-emerald-600 border-emerald-100',
+          'Normal': 'bg-blue-50 text-blue-600 border-blue-100',
+          'Alert': 'bg-orange-50 text-orange-600 border-orange-100',
+          'Critical': 'bg-red-50 text-red-600 border-red-100'
+        };
+        const statusColor = statusColors[log.status] || 'bg-gray-50 text-gray-600 border-gray-100';
+
+        return `
+          <div class="p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-all border-gray-100 dark:bg-gray-800/50">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Animal</p>
+                <h4 class="text-base font-bold text-gray-800 dark:text-gray-100">${log.animal_code}</h4>
+              </div>
+              <div class="px-2 py-1 rounded-lg ${statusColor} text-[10px] font-bold border">
+                ${log.status}
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2">
+              <div class="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <p class="text-[8px] text-gray-400 uppercase font-bold">BPM</p>
+                <p class="text-sm font-bold text-gray-800 dark:text-gray-100">${log.heart_rate}</p>
+              </div>
+              <div class="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <p class="text-[8px] text-gray-400 uppercase font-bold">Temp</p>
+                <p class="text-sm font-bold text-gray-800 dark:text-gray-100">${log.temperature}°C</p>
+              </div>
+              <div class="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <p class="text-[8px] text-gray-400 uppercase font-bold">Fat</p>
+                <p class="text-sm font-bold text-gray-800 dark:text-gray-100">${log.body_fat}%</p>
+              </div>
+            </div>
+
+            <p class="text-[9px] text-gray-400 mt-3 text-right">Synced: ${timeAgo(log.recorded_at)}</p>
+          </div>
+        `;
+      }).join('');
+    } catch (error) {
+      console.error('Health Scanner Error:', error);
+      scannerContent.innerHTML = '<p class="text-sm text-red-500 col-span-full text-center py-8">Unable to load live sensor data</p>';
+    }
 
     if (window.lucide) window.lucide.createIcons();
   }
