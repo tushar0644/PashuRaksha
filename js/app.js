@@ -1357,4 +1357,43 @@ window.openEditProfileModal = async function () {
       btn.disabled = false;
     }
   });
+
 };
+
+// --- Theme Management ---
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  applyTheme(savedTheme);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  
+  const moonIcon = document.getElementById('theme-icon-moon');
+  const sunIcon = document.getElementById('theme-icon-sun');
+  
+  if (moonIcon && sunIcon) {
+    if (theme === 'dark') {
+      moonIcon.classList.add('hidden');
+      sunIcon.classList.remove('hidden');
+    } else {
+      moonIcon.classList.remove('hidden');
+      sunIcon.classList.add('hidden');
+    }
+  }
+}
+
+// Ensure theme is applied immediately to avoid flicker
+initTheme();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      applyTheme(newTheme);
+    });
+  }
+});
