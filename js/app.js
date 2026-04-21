@@ -1122,8 +1122,8 @@ window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.route">Route</label>
               <select id="trt-route" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
-                <option value="Injection (IM)">Injection (IM)</option>
-                <option value="Injection (SC)">Injection (SC)</option>
+                <option value="IM">Intramuscular (IM)</option>
+                <option value="SC">Subcutaneous (SC)</option>
                 <option value="Oral">Oral</option>
                 <option value="Topical">Topical</option>
               </select>
