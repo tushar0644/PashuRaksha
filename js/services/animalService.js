@@ -34,14 +34,31 @@ class AnimalService {
       if (sessionError || !session) throw new Error("You must be logged in to add an animal.");
 
       // Fetch logged-in user's farm_id
-      const { data: farmData, error: farmError } = await this.supabase
+      let { data: farmData, error: farmError } = await this.supabase
         .from('farms')
         .select('id')
         .eq('owner_id', session.user.id)
         .single();
         
       if (farmError || !farmData) {
-        throw new Error("Could not find your farm profile. Please set it up in your Profile first.");
+        console.log("Farm profile missing, auto-creating default for user:", session.user.id);
+        const { data: newFarm, error: createError } = await this.supabase
+          .from('farms')
+          .insert([{ 
+            owner_id: session.user.id, 
+            farm_name: "My PashuRaksha Farm",
+            village: "Default Village",
+            district: "Default District",
+            state: "Default State"
+          }])
+          .select()
+          .single();
+          
+        if (createError) {
+          console.error("Auto-create farm failed:", createError);
+          throw new Error("Could not find or create your farm profile. Please set it up in your Profile section manually.");
+        }
+        farmData = newFarm;
       }
 
       // Exact fields only

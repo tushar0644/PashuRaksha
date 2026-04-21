@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Mobile Menu Toggle
   const mobileMenuBtn = document.getElementById('mobile-menu-btn');
   const sidebar = document.querySelector('aside');
-  
+
   if (mobileMenuBtn && sidebar) {
     mobileMenuBtn.addEventListener('click', () => {
       sidebar.classList.toggle('hidden');
@@ -62,36 +62,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  async function switchView(viewName) {
+  window.switchView = async function(viewName) {
     // Update active nav
     navItems.forEach(item => {
       item.classList.remove('active', 'bg-emerald-50', 'text-primary-dark');
-      if(item.dataset.view === viewName) {
+      if (item.dataset.view === viewName) {
         item.classList.add('active');
       }
     });
 
     // Update Headers
     const viewMeta = views[viewName];
-    if(viewMeta) {
+    if (viewMeta) {
       pageTitle.setAttribute('data-i18n', `header.title.${viewName}`);
       pageTitle.textContent = window.i18n ? window.i18n.t(`header.title.${viewName}`) : viewMeta.title;
-      
+
       pageSubtitle.setAttribute('data-i18n', `header.subtitle.${viewName}`);
       pageSubtitle.textContent = window.i18n ? window.i18n.t(`header.subtitle.${viewName}`) : viewMeta.subtitle;
-      
+
       // Clear container with fade out
       viewContainer.innerHTML = '<div class="flex justify-center p-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-primary"></i></div>';
-      if(window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons();
       viewContainer.className = 'pb-20 fade-in'; // trigger animation
-      
+
       // Render Content
       await viewMeta.render(viewContainer);
-      
-      if(window.i18n) window.i18n.updateDOM();
-      
+
+      if (window.i18n) window.i18n.updateDOM();
+
       // Re-initialize icons for newly added HTML
-      if(window.lucide) {
+      if (window.lucide) {
         window.lucide.createIcons();
       }
     }
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const viewName = e.currentTarget.dataset.view;
       switchView(viewName);
-      
+
       // Close notification dropdown on click
       const dropdown = document.getElementById('notification-dropdown');
       if (dropdown) {
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Close mobile sidebar on click
-      if(window.innerWidth < 768 && sidebar) {
+      if (window.innerWidth < 768 && sidebar) {
         sidebar.classList.add('hidden');
       }
     });
@@ -194,7 +194,7 @@ function initNotifications() {
         </div>
       `).join('');
     }
-    if(window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.lucide.createIcons();
   });
 
   // Initial Fetch
@@ -207,18 +207,18 @@ async function renderDashboard(container) {
   // Initial fetch for stats
   const stats = await window.dashboardService.getDashboardStats();
   const treatments = await window.treatmentService.getTreatments();
-  
+
   const activeTreatments = treatments.length || stats.activeTreatments;
   const totalAnimals = stats.totalAnimals;
-  
+
   let restrictedCount = 0;
   // Calculate restricted count based on MRL status
   treatments.forEach(t => {
     const medName = t.medicines ? t.medicines.name : t.medicine;
     const med = mockData.medicines.find(m => m.name === medName);
-    if(med) {
-      const status = getMRLStatus(t.treatment_date || t.date, med.withdrawalMilk);
-      if(status.status === 'Restricted') restrictedCount++;
+    if (med) {
+      const status = getMRLStatus(t.start_date || t.date, med.withdrawalMilk);
+      if (status.status === 'Restricted') restrictedCount++;
     }
   });
 
@@ -327,7 +327,7 @@ async function renderDashboard(container) {
       </div>
     </div>
   `;
-  
+
   container.innerHTML = html;
 
   // Function to refresh chart data
@@ -342,7 +342,7 @@ async function renderDashboard(container) {
     emptyState.classList.add('hidden');
 
     const data = await window.dashboardService.getAMUTrends(months);
-    
+
     loading.classList.add('hidden');
 
     // Summary Cards
@@ -373,7 +373,7 @@ async function renderDashboard(container) {
         </div>
       </div>
     `;
-    if(window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.lucide.createIcons();
 
     if (data.labels.length === 0 || (data.totalAntibiotics === 0 && data.totalVaccines === 0)) {
       emptyState.classList.remove('hidden');
@@ -382,7 +382,7 @@ async function renderDashboard(container) {
 
     chartContainer.classList.remove('hidden');
     const ctx = document.getElementById('amuChart').getContext('2d');
-    
+
     if (window.myAMUChart) window.myAMUChart.destroy();
 
     window.myAMUChart = new Chart(ctx, {
@@ -424,12 +424,12 @@ async function renderDashboard(container) {
           }
         },
         scales: {
-          y: { 
-            beginAtZero: true, 
+          y: {
+            beginAtZero: true,
             grid: { color: '#f8fafc', drawBorder: false },
             ticks: { stepSize: 1, color: '#94a3b8', font: { size: 10 } }
           },
-          x: { 
+          x: {
             grid: { display: false },
             ticks: { color: '#64748b', font: { size: 10, weight: '600' } }
           }
@@ -451,10 +451,10 @@ async function renderDashboard(container) {
   treatments.forEach(t => {
     const medName = t.medicines ? t.medicines.name : t.medicine;
     const med = mockData.medicines.find(m => m.name === medName);
-    if(med) {
-      const dateStr = t.treatment_date || t.date;
+    if (med) {
+      const dateStr = t.start_date || t.date;
       const status = getMRLStatus(dateStr, med.withdrawalMilk);
-      if(status.status !== 'Safe') {
+      if (status.status !== 'Safe') {
         const tag = t.animals ? t.animals.animal_tag : t.animalId;
         alertHtml += `
           <div class="flex items-start p-3 border border-gray-100 rounded-lg bg-white shadow-sm">
@@ -470,9 +470,9 @@ async function renderDashboard(container) {
       }
     }
   });
-  if(!alertHtml) alertHtml = '<p class="text-sm text-gray-500">No active restrictions. All products safe for release.</p>';
+  if (!alertHtml) alertHtml = '<p class="text-sm text-gray-500">No active restrictions. All products safe for release.</p>';
   alertsContainer.innerHTML = alertHtml;
-  if(window.lucide) window.lucide.createIcons();
+  if (window.lucide) window.lucide.createIcons();
 
   // Health Scanner Update Logic
   async function updateHealthScanner() {
@@ -492,7 +492,7 @@ async function renderDashboard(container) {
       const isFever = parseFloat(log.temperature) > 102.5;
       const statusColor = isFever ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100';
       const tempColor = isFever ? 'text-red-600' : 'text-gray-800';
-      
+
       return `
         <div class="p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-all ${isFever ? 'border-red-200 bg-red-50/10' : 'border-gray-100'}">
           <div class="flex justify-between items-start mb-3">
@@ -527,13 +527,13 @@ async function renderDashboard(container) {
         </div>
       `;
     }).join('');
-    
+
     if (window.lucide) window.lucide.createIcons();
   }
 
   // Initial update
   updateHealthScanner();
-  
+
   // Set auto-refresh
   if (window.healthScannerInterval) clearInterval(window.healthScannerInterval);
   window.healthScannerInterval = setInterval(updateHealthScanner, 5000);
@@ -543,12 +543,12 @@ async function renderAnimals(container) {
   const animals = await window.animalService.getAnimals();
 
   let rows = animals.map(a => {
-      const rawStatus = a.health_status || a.status || 'healthy';
-      const formattedStatus = rawStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      const statusColor = rawStatus.toLowerCase() === 'healthy' ? 'status-safe' 
-                        : (rawStatus.toLowerCase() === 'observation' ? 'status-warning' : 'status-danger');
+    const rawStatus = a.health_status || a.status || 'healthy';
+    const formattedStatus = rawStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const statusColor = rawStatus.toLowerCase() === 'healthy' ? 'status-safe'
+      : (rawStatus.toLowerCase() === 'observation' ? 'status-warning' : 'status-danger');
 
-      return `
+    return `
     <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
       <td class="py-4 px-6 font-medium text-gray-900">${a.animal_tag || a.id}</td>
       <td class="py-4 px-6 text-gray-600">${a.breed}</td>
@@ -571,12 +571,12 @@ async function renderAnimals(container) {
   `}).join('');
 
   let mobileCards = animals.map(a => {
-      const rawStatus = a.health_status || a.status || 'healthy';
-      const formattedStatus = rawStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      const statusColor = rawStatus.toLowerCase() === 'healthy' ? 'status-safe' 
-                        : (rawStatus.toLowerCase() === 'observation' ? 'status-warning' : 'status-danger');
+    const rawStatus = a.health_status || a.status || 'healthy';
+    const formattedStatus = rawStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const statusColor = rawStatus.toLowerCase() === 'healthy' ? 'status-safe'
+      : (rawStatus.toLowerCase() === 'observation' ? 'status-warning' : 'status-danger');
 
-      return `
+    return `
     <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-3">
       <div class="flex justify-between items-start">
         <div>
@@ -645,10 +645,10 @@ async function renderTreatments(container) {
   const treatments = await window.treatmentService.getTreatments();
 
   let rows = treatments.map(t => {
-    const date = t.treatment_date ? new Date(t.treatment_date).toLocaleDateString() : t.date;
+    const date = t.start_date ? new Date(t.start_date).toLocaleDateString() : t.date;
     const tag = t.animals ? t.animals.animal_tag : t.animalId;
     const medName = t.medicines ? t.medicines.name : t.medicine;
-    
+
     return `
     <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
       <td class="py-4 px-6 font-medium text-gray-900">${date}</td>
@@ -661,10 +661,10 @@ async function renderTreatments(container) {
   `}).join('');
 
   let mobileCards = treatments.map(t => {
-    const date = t.treatment_date ? new Date(t.treatment_date).toLocaleDateString() : t.date;
+    const date = t.start_date ? new Date(t.start_date).toLocaleDateString() : t.date;
     const tag = t.animals ? t.animals.animal_tag : t.animalId;
     const medName = t.medicines ? t.medicines.name : t.medicine;
-    
+
     return `
     <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-2">
       <div class="flex justify-between items-start">
@@ -713,20 +713,20 @@ async function renderTreatments(container) {
 
 async function renderMRL(container) {
   const treatments = await window.treatmentService.getTreatments();
-  
+
   let rows = treatments.map(t => {
     const medName = t.medicines ? t.medicines.name : t.medicine;
     const med = mockData.medicines.find(m => m.name === medName);
-    if(!med) return '';
-    
-    const dateStr = t.treatment_date || t.date;
+    if (!med) return '';
+
+    const dateStr = t.start_date || t.date;
     const tag = t.animals ? t.animals.animal_tag : t.animalId;
-    
+
     const milkStatus = getMRLStatus(dateStr, med.withdrawalMilk);
     const meatStatus = getMRLStatus(dateStr, med.withdrawalMeat);
-    
+
     const milkEnd = calculateWithdrawal(dateStr, med.withdrawalMilk).toISOString().split('T')[0];
-    
+
     return `
       <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
         <td class="py-4 px-6 font-bold text-gray-900">${tag}</td>
@@ -748,14 +748,14 @@ async function renderMRL(container) {
   let mobileCards = treatments.map(t => {
     const medName = t.medicines ? t.medicines.name : t.medicine;
     const med = mockData.medicines.find(m => m.name === medName);
-    if(!med) return '';
-    
-    const dateStr = t.treatment_date || t.date;
+    if (!med) return '';
+
+    const dateStr = t.start_date || t.date;
     const tag = t.animals ? t.animals.animal_tag : t.animalId;
-    
+
     const milkStatus = getMRLStatus(dateStr, med.withdrawalMilk);
     const milkEnd = calculateWithdrawal(dateStr, med.withdrawalMilk).toISOString().split('T')[0];
-    
+
     return `
     <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-2">
       <div class="flex justify-between items-start">
@@ -861,20 +861,20 @@ async function renderProfile(container) {
   // Update sidebar names to sync with profile
   const sidebarUser = document.getElementById('sidebar-user-name');
   const sidebarFarm = document.getElementById('sidebar-farm-name');
-  if(sidebarUser) sidebarUser.textContent = profile.full_name;
-  if(sidebarFarm) sidebarFarm.textContent = profile.farm_name;
+  if (sidebarUser) sidebarUser.textContent = profile.full_name;
+  if (sidebarFarm) sidebarFarm.textContent = profile.farm_name;
 
   let activityHtml = treatments.slice(0, 3).map(t => `
     <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg mb-2 border border-gray-100">
       <div class="bg-primary text-white p-2 rounded-full"><i data-lucide="syringe" class="w-4 h-4"></i></div>
       <div>
         <p class="text-sm font-semibold text-gray-800">Treatment Logged for ${t.animals ? t.animals.animal_tag : t.animalId}</p>
-        <p class="text-xs text-gray-500">${new Date(t.treatment_date || t.date).toLocaleDateString()} - ${t.medicines ? t.medicines.name : t.medicine}</p>
+        <p class="text-xs text-gray-500">${new Date(t.start_date || t.date).toLocaleDateString()} - ${t.medicines ? t.medicines.name : t.medicine}</p>
       </div>
     </div>
   `).join('');
 
-  if(!activityHtml) activityHtml = '<p class="text-sm text-gray-500">No recent activity.</p>';
+  if (!activityHtml) activityHtml = '<p class="text-sm text-gray-500">No recent activity.</p>';
 
   container.innerHTML = `
     <div class="space-y-6 slide-up">
@@ -987,9 +987,9 @@ async function renderProfile(container) {
 }
 
 // Global modal functions
-window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
+window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
   const container = document.getElementById('modal-container');
-  
+
   // Show loading state first
   container.innerHTML = `
     <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 fade-in">
@@ -998,7 +998,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
       </div>
     </div>
   `;
-  if(window.lucide) window.lucide.createIcons();
+  if (window.lucide) window.lucide.createIcons();
 
   // Fetch data
   const animals = await window.animalService.getAnimals();
@@ -1010,7 +1010,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     const { data: dbDiseases, error: diseaseError } = await window.supabaseClient
       .from('diseases')
       .select('id, name, symptoms');
-      
+
     if (diseaseError) {
       console.error('Error fetching diseases:', diseaseError);
       diseases = window.mockData && window.mockData.diseases ? window.mockData.diseases : [];
@@ -1022,7 +1022,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
     const { data: dbMedicines, error: medError } = await window.supabaseClient
       .from('medicines')
       .select('id, name, category, withdrawal_milk_days');
-      
+
     if (medError) {
       console.error('Error fetching medicines:', medError);
       medicines = window.mockData ? window.mockData.medicines : [];
@@ -1050,7 +1050,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
         </div>
       </div>
     `;
-    if(window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.lucide.createIcons();
     return;
   }
 
@@ -1141,7 +1141,13 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
             
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.prescribedBy">Prescribed By</label>
-              <input type="text" id="trt-vet" placeholder="Dr. Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+              <select id="trt-vet" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+                <option value="" disabled selected>Select Doctor</option>
+                <option value="Dr. Sharma">Dr. Sharma</option>
+                <option value="Dr. Verma">Dr. Verma</option>
+                <option value="Dr. Singh">Dr. Singh</option>
+                <option value="Dr. Patel">Dr. Patel</option>
+              </select>
             </div>
           </div>
           
@@ -1161,10 +1167,10 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
       </div>
     </div>
   `;
-  
-  if(window.lucide) window.lucide.createIcons();
-  if(window.i18n) window.i18n.updateDOM();
-  
+
+  if (window.lucide) window.lucide.createIcons();
+  if (window.i18n) window.i18n.updateDOM();
+
   setTimeout(() => {
     const disSelect = document.getElementById('trt-disease');
     if (disSelect) {
@@ -1179,7 +1185,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
         }
       });
     }
-    
+
     const medSelect = document.getElementById('trt-medicine');
     if (medSelect) {
       medSelect.addEventListener('change', (e) => {
@@ -1188,7 +1194,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
         if (m) {
           const category = normalizeCategory(m.category);
           const withdrawalDays = m.withdrawal_milk_days !== undefined ? m.withdrawal_milk_days : (m.withdrawalMilk || 0);
-          
+
           document.getElementById('trt-med-cat').textContent = category;
           document.getElementById('trt-med-withdraw').textContent = withdrawalDays ? withdrawalDays + ' Days (Milk)' : 'None';
           infoEl.classList.remove('hidden');
@@ -1202,7 +1208,7 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   // Set default dates (Today in local YYYY-MM-DD format)
   const today = new Date();
   const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-  
+
   setTimeout(() => {
     const startInput = document.getElementById('trt-start-date');
     const endInput = document.getElementById('trt-end-date');
@@ -1213,107 +1219,101 @@ window.openAddTreatmentModal = async function(preselectedAnimalId = null) {
   // Handle form submission
   document.getElementById('treatment-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    console.log('Log Treatment Form Submitted');
     
+    // 1. Capture Form Data
     const animalId = document.getElementById('trt-animal').value;
-    const medicineId = document.getElementById('trt-medicine').value;
+    const medicineId = document.getElementById('trt-medicine') ? document.getElementById('trt-medicine').value : '';
+    const diseaseId = document.getElementById('trt-disease') ? document.getElementById('trt-disease').value : null;
+    const dosage = document.getElementById('trt-dosage').value;
+    const route = document.getElementById('trt-route').value;
     const startDateVal = document.getElementById('trt-start-date').value;
     const endDateVal = document.getElementById('trt-end-date').value;
-    
-    // Explicit Validation for better UX
-    if (!animalId) {
-        window.showToast('Please select an animal first.', 'warning');
-        return;
-    }
-    if (!medicineId) {
-        window.showToast('Please select a medicine.', 'warning');
-        return;
-    }
-    
-    const start_date = startDateVal;
-    const end_date = endDateVal;
-    
-    if (!start_date || !end_date) {
-      window.showToast('Please provide both start and end dates.', 'error');
-      return;
-    }
+    const prescribedBy = document.getElementById('trt-vet').value;
+    const notes = document.getElementById('trt-notes').value;
 
-    if (new Date(start_date) > new Date(end_date)) {
-      window.showToast('Invalid date range. End date must be after start date.', 'error');
-      return;
-    }
+    // 2. Date Safety (Ensure YYYY-MM-DD for Supabase)
+    const toDBDate = (val) => {
+      if (!val) return null;
+      // If DD-MM-YYYY, convert to YYYY-MM-DD
+      if (val.includes('-') && val.split('-')[0].length === 2) {
+        const parts = val.split('-');
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return val; // Assume it's already YYYY-MM-DD
+    };
+
+    const start_date = toDBDate(startDateVal);
+    const end_date = toDBDate(endDateVal);
+
+    // 3. Validation
+    if (!animalId) return window.showToast('Animal ID missing. Please try again.', 'error');
+    if (!medicineId) return window.showToast('Please select a medicine.', 'warning');
+    if (!start_date || !end_date) return window.showToast('Please select start and end dates.', 'warning');
 
     const btn = document.getElementById('trt-submit');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
     btn.disabled = true;
-    btn.classList.add('opacity-75', 'cursor-not-allowed');
-    if(window.lucide) window.lucide.createIcons();
 
-    const selectedAnimalId = document.getElementById('trt-animal').value;
-    const selectedMedicineId = document.getElementById('trt-medicine') ? document.getElementById('trt-medicine').value : '';
-    const selectedDiseaseId = document.getElementById('trt-disease') ? document.getElementById('trt-disease').value : null;
-
-    const medInfo = window.modalMedicines.find(m => m.id === selectedMedicineId);
-    const diseaseInfo = window.modalDiseases.find(d => d.id === selectedDiseaseId);
-    
-    let withdrawal_end_date = end_date;
-    if (medInfo) {
-      const withdrawalDays = medInfo.withdrawal_milk_days !== undefined ? medInfo.withdrawal_milk_days : (medInfo.withdrawalMilk || 0);
-      if (withdrawalDays > 0) {
-        const wDate = new Date(end_date);
-        wDate.setDate(wDate.getDate() + withdrawalDays);
-        withdrawal_end_date = wDate.toISOString().split('T')[0];
-      }
-    }
-
-    // Map data to standardized schema
-    const data = {
-      animal_id: selectedAnimalId,
-      medicine_id: selectedMedicineId,
-      medicine_name: medInfo ? medInfo.name : '',
-      disease_id: selectedDiseaseId,
-      diagnosis: diseaseInfo ? diseaseInfo.name : document.getElementById('trt-notes').value.substring(0, 50),
-      dosage: document.getElementById('trt-dosage').value,
-      route: document.getElementById('trt-route').value,
-      start_date: start_date,
-      end_date: end_date,
-      withdrawal_end_date: withdrawal_end_date,
-      prescribed_by: document.getElementById('trt-vet').value || 'Self',
-      notes: document.getElementById('trt-notes').value
-    };
-
-    const res = await window.treatmentService.addTreatment(data); 
-
-    // 4. Handle Result
-    if (res) {
-      // Success: Clear and refresh
-      document.getElementById('modal-container').innerHTML = '';
+    try {
+      // 4. Calculate Withdrawal Date
+      const medInfo = window.modalMedicines.find(m => m.id === medicineId);
+      const diseaseInfo = window.modalDiseases.find(d => d.id === diseaseId);
       
-      // Navigate to current view to refresh UI
-      const activeNavEl = document.querySelector('.nav-item.active');
-      if (activeNavEl) {
-        const viewName = activeNavEl.dataset.view;
-        switchView(viewName); // Use the existing switchView helper for a clean refresh
+      let withdrawal_end_date = end_date;
+      if (medInfo) {
+        const withdrawalDays = medInfo.withdrawal_milk_days !== undefined ? medInfo.withdrawal_milk_days : (medInfo.withdrawalMilk || 0);
+        if (withdrawalDays > 0) {
+          const wDate = new Date(end_date);
+          wDate.setDate(wDate.getDate() + withdrawalDays);
+          withdrawal_end_date = wDate.toISOString().split('T')[0];
+        }
       }
-      
-      // Update Dashboard Chart if it's open
-      if (typeof refreshAMUChart === 'function') {
-        refreshAMUChart(document.getElementById('amu-range')?.value || 6);
+
+      // 5. Construct Payload
+      const payload = {
+        animal_id: animalId,
+        medicine_id: medicineId,
+        medicine_name: medInfo ? medInfo.name : 'Unknown',
+        disease_id: diseaseId,
+        diagnosis: diseaseInfo ? diseaseInfo.name : (notes.substring(0, 50) || 'General Treatment'),
+        dosage: dosage,
+        route: route,
+        start_date: start_date,
+        end_date: end_date,
+        withdrawal_end_date: withdrawal_end_date,
+        prescribed_by: prescribedBy || 'Self',
+        notes: notes
+      };
+
+      // 6. Save
+      const res = await window.treatmentService.addTreatment(payload);
+
+      if (res) {
+        document.getElementById('modal-container').innerHTML = '';
+        
+        // Refresh current view instantly
+        const activeNav = document.querySelector('.nav-item.active');
+        if (activeNav && window.switchView) {
+          window.switchView(activeNav.dataset.view);
+        }
+        
+        if (typeof refreshAMUChart === 'function') refreshAMUChart(6);
+      } else {
+        throw new Error("Service returned no result");
       }
-    } else {
-      // Failure: Reset button so user can try again
+    } catch (err) {
+      console.error('Save failed:', err);
       btn.innerHTML = originalText;
       btn.disabled = false;
-      btn.classList.remove('opacity-75', 'cursor-not-allowed');
-      // Error toast is already shown by treatmentService.addTreatment
+      window.showToast('Failed to save treatment: ' + err.message, 'error');
     }
   });
 };
 
-window.openAddAnimalModal = function() {
+window.openAddAnimalModal = function () {
   const container = document.getElementById('modal-container');
-  
+
   container.innerHTML = `
     <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex justify-center items-end md:items-start z-50 fade-in">
       <div class="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full max-w-lg p-6 md:p-8 m-0 md:m-4 relative md:mt-10 max-h-[90vh] overflow-y-auto">
@@ -1373,20 +1373,20 @@ window.openAddAnimalModal = function() {
       </div>
     </div>
   `;
-  
-  if(window.lucide) window.lucide.createIcons();
+
+  if (window.lucide) window.lucide.createIcons();
 
   document.getElementById('animal-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const btn = document.getElementById('anm-submit');
     const originalText = btn.innerHTML;
-    
+
     try {
       btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
       btn.disabled = true;
       btn.classList.add('opacity-75', 'cursor-not-allowed');
-      if(window.lucide) window.lucide.createIcons();
+      if (window.lucide) window.lucide.createIcons();
 
       const data = {
         animal_tag: document.getElementById('anm-id').value,
@@ -1395,7 +1395,7 @@ window.openAddAnimalModal = function() {
         weight: document.getElementById('anm-weight').value,
         health_status: document.getElementById('anm-status').value
       };
-      
+
       const mockMappedData = {
         id: data.animal_tag,
         breed: data.breed,
@@ -1405,19 +1405,19 @@ window.openAddAnimalModal = function() {
         lastCheck: new Date().toISOString().split('T')[0]
       };
 
-      const res = await window.animalService.addAnimal(data); 
-      
+      const res = await window.animalService.addAnimal(data);
+
       if (res || window.mockData) {
-        if(window.mockData && !res) {
-            window.mockData.animals.push(mockMappedData);
-            window.showToast('Animal added to local data successfully!', 'success');
+        if (window.mockData && !res) {
+          window.mockData.animals.push(mockMappedData);
+          window.showToast('Animal added to local data successfully!', 'success');
         } else {
-            window.showToast('Animal added successfully!', 'success');
+          window.showToast('Animal added successfully!', 'success');
         }
         document.getElementById('modal-container').innerHTML = '';
-        
+
         const activeNav = document.querySelector('.nav-item.active');
-        if(activeNav) {
+        if (activeNav) {
           document.querySelector(`[data-view="${activeNav.dataset.view}"]`).click();
         }
       }
@@ -1433,10 +1433,10 @@ window.openAddAnimalModal = function() {
   });
 };
 
-window.openEditProfileModal = async function() {
+window.openEditProfileModal = async function () {
   const container = document.getElementById('modal-container');
   const profile = await window.userService.getProfile();
-  
+
   container.innerHTML = `
     <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 fade-in overflow-y-auto">
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 m-4 relative">
@@ -1496,12 +1496,12 @@ window.openEditProfileModal = async function() {
       </div>
     </div>
   `;
-  
-  if(window.lucide) window.lucide.createIcons();
+
+  if (window.lucide) window.lucide.createIcons();
 
   document.getElementById('profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const btn = document.getElementById('prof-submit');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
@@ -1516,20 +1516,20 @@ window.openEditProfileModal = async function() {
       state: document.getElementById('prof-state').value
     };
 
-    const res = await window.userService.updateProfile(data); 
-    
+    const res = await window.userService.updateProfile(data);
+
     if (res) {
       document.getElementById('modal-container').innerHTML = '';
-      
+
       // Instantly update sidebar UI for a snappy feel
       const sidebarUser = document.getElementById('sidebar-user-name');
       const sidebarFarm = document.getElementById('sidebar-farm-name');
-      if(sidebarUser) sidebarUser.textContent = data.full_name;
-      if(sidebarFarm) sidebarFarm.textContent = data.farm_name;
+      if (sidebarUser) sidebarUser.textContent = data.full_name;
+      if (sidebarFarm) sidebarFarm.textContent = data.farm_name;
 
       // Refresh the main container if we're on the profile view
       const activeNav = document.querySelector('.nav-item.active');
-      if(activeNav && activeNav.dataset.view === 'profile') {
+      if (activeNav && activeNav.dataset.view === 'profile') {
         activeNav.click(); // Triggers a fresh render
       }
     } else {

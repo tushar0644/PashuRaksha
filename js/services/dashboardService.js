@@ -9,12 +9,12 @@ class DashboardService {
       const { count: animalCount, error: animalError } = await this.supabase
         .from('animals')
         .select('*', { count: 'exact', head: true });
-        
+
       // 2. Active Treatments (Simplified query)
       const { count: treatmentCount, error: treatmentError } = await this.supabase
         .from('treatments')
         .select('*', { count: 'exact', head: true });
-        
+
       if (animalError || treatmentError) throw new Error('Failed to fetch stats');
 
       return {
@@ -38,10 +38,10 @@ class DashboardService {
       const { data: treatments, error } = await this.supabase
         .from('treatments')
         .select(`
-          treatment_date,
+          start_date,
           medicines ( category )
         `)
-        .gte('treatment_date', startDateStr);
+        .gte('start_date', startDateStr);
 
       if (error) throw error;
 
@@ -57,16 +57,16 @@ class DashboardService {
       const vaccineCounts = new Array(monthsLimit).fill(0);
 
       const monthNames = months;
-      
+
       treatments.forEach(t => {
-        const tDate = new Date(t.treatment_date);
+        const tDate = new Date(t.start_date);
         const monthName = tDate.toLocaleString('default', { month: 'short' });
         const monthIndex = monthNames.indexOf(monthName);
-        
+
         if (monthIndex !== -1) {
           const rawCat = t.medicines?.category;
           const category = normalizeCategory(rawCat);
-          
+
           if (category === 'Antibiotic') {
             antibioticCounts[monthIndex]++;
           } else if (category === 'Vaccine') {
@@ -78,7 +78,7 @@ class DashboardService {
       // Calculate percentage changes vs previous month (last index vs second to last)
       const lastIdx = monthsLimit - 1;
       const prevIdx = monthsLimit - 2;
-      
+
       const calcChange = (current, previous) => {
         if (previous === 0) return current > 0 ? 100 : 0;
         return Math.round(((current - previous) / previous) * 100);

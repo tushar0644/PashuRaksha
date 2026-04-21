@@ -15,7 +15,7 @@ class NotificationService {
         .limit(20);
 
       if (error) throw error;
-      
+
       this.notifications = data || [];
       this.unreadCount = this.notifications.filter(n => !n.is_read).length;
       this.notifyListeners();
@@ -31,19 +31,19 @@ class NotificationService {
     // Generate alerts based on treatments/MRL
     const treatments = await window.treatmentService.getTreatments();
     const localAlerts = [];
-    
+
     treatments.forEach(t => {
       const medName = t.medicines ? t.medicines.name : t.medicine;
       const med = mockData.medicines.find(m => m.name === medName);
-      if(med) {
-        const status = getMRLStatus(t.treatment_date || t.date, med.withdrawalMilk);
-        if(status.status === 'Restricted') {
+      if (med) {
+        const status = getMRLStatus(t.start_date || t.date, med.withdrawalMilk);
+        if (status.status === 'Restricted') {
           localAlerts.push({
             id: `mrl-${t.id}`,
             type: 'mrl',
             title: 'MRL Restriction Active',
             message: `Animal ${t.animals?.animal_tag || t.animal_id} is still under withdrawal period for ${medName}.`,
-            created_at: t.treatment_date || t.created_at,
+            created_at: t.start_date || t.created_at,
             is_read: false
           });
         }
@@ -74,7 +74,7 @@ class NotificationService {
         const n = this.notifications.find(notif => notif.id === id);
         if (n) n.is_read = true;
       }
-      
+
       this.unreadCount = this.notifications.filter(n => !n.is_read).length;
       this.notifyListeners();
     } catch (error) {
@@ -86,7 +86,7 @@ class NotificationService {
     this.listeners.push(callback);
     // Initial call
     callback({ notifications: this.notifications, unreadCount: this.unreadCount });
-    
+
     // Supabase Realtime
     this.supabase
       .channel('schema-db-changes')
@@ -100,9 +100,9 @@ class NotificationService {
   }
 
   notifyListeners() {
-    this.listeners.forEach(cb => cb({ 
-        notifications: this.notifications, 
-        unreadCount: this.unreadCount 
+    this.listeners.forEach(cb => cb({
+      notifications: this.notifications,
+      unreadCount: this.unreadCount
     }));
   }
 }

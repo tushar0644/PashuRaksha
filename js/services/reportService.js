@@ -7,7 +7,7 @@ class ReportService {
     try {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      
+
       const profile = await window.userService.getProfile();
       const animals = await window.animalService.getAnimals();
       const treatments = await window.treatmentService.getTreatments();
@@ -16,11 +16,11 @@ class ReportService {
       // Header
       doc.setFillColor(5, 150, 105); // Emerald 600
       doc.rect(0, 0, 210, 40, 'F');
-      
+
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
       doc.text("PashuRaksha Compliance Audit", 20, 25);
-      
+
       doc.setFontSize(10);
       doc.text(`Generated on: ${new Date().toLocaleString()}`, 140, 25);
 
@@ -29,7 +29,7 @@ class ReportService {
       doc.setFontSize(14);
       doc.text("Farmer Details", 20, 55);
       doc.line(20, 57, 60, 57);
-      
+
       doc.setFontSize(10);
       doc.text(`Name: ${profile.full_name}`, 20, 65);
       doc.text(`Farm Name: ${profile.farm_name}`, 20, 72);
@@ -40,7 +40,7 @@ class ReportService {
       doc.setFontSize(14);
       doc.text("Livestock Summary", 120, 55);
       doc.line(120, 57, 165, 57);
-      
+
       doc.setFontSize(10);
       const healthyCount = animals.filter(a => (a.health_status || '').toLowerCase() === 'healthy').length;
       doc.text(`Total Animals: ${animals.length}`, 120, 65);
@@ -50,17 +50,17 @@ class ReportService {
       // MRL Compliance Table
       doc.setFontSize(14);
       doc.text("MRL & Treatment Logs", 20, 105);
-      
+
       const tableData = treatments.map(t => {
         const medName = t.medicines ? t.medicines.name : t.medicine;
         const med = mockData.medicines.find(m => m.name === medName);
         let mrlStatus = "N/A";
-        if(med) {
-            const status = getMRLStatus(t.treatment_date || t.date, med.withdrawalMilk);
-            mrlStatus = status.status === 'Safe' ? 'SAFE' : `RESTRICTED (${status.remaining}d)`;
+        if (med) {
+          const status = getMRLStatus(t.start_date || t.date, med.withdrawalMilk);
+          mrlStatus = status.status === 'Safe' ? 'SAFE' : `RESTRICTED (${status.remaining}d)`;
         }
         return [
-          new Date(t.treatment_date).toLocaleDateString(),
+          new Date(t.start_date).toLocaleDateString(),
           t.animals?.animal_tag || t.animal_id,
           medName,
           t.dosage || 'N/A',
@@ -103,15 +103,15 @@ class ReportService {
     try {
       const treatments = await window.treatmentService.getTreatments();
       const profile = await window.userService.getProfile();
-      
+
       // Check if any animal is under restriction
       let restrictedCount = 0;
       treatments.forEach(t => {
         const medName = t.medicines ? t.medicines.name : t.medicine;
         const med = mockData.medicines.find(m => m.name === medName);
-        if(med) {
-          const status = getMRLStatus(t.treatment_date || t.date, med.withdrawalMilk);
-          if(status.status === 'Restricted') restrictedCount++;
+        if (med) {
+          const status = getMRLStatus(t.start_date || t.date, med.withdrawalMilk);
+          if (status.status === 'Restricted') restrictedCount++;
         }
       });
 
@@ -122,9 +122,9 @@ class ReportService {
 
       const batchId = 'PR-' + Math.random().toString(36).substr(2, 9).toUpperCase();
       const traceUrl = `${window.location.origin}/trace.html?batch=${batchId}&farm=${encodeURIComponent(profile.farm_name)}`;
-      
+
       const qrDataUrl = await QRCode.toDataURL(traceUrl, { width: 300, margin: 2 });
-      
+
       this.showQRModal(qrDataUrl, batchId, profile);
 
     } catch (error) {
@@ -178,7 +178,7 @@ class ReportService {
         </div>
       </div>
     `;
-    if(window.lucide) window.lucide.createIcons();
+    if (window.lucide) window.lucide.createIcons();
   }
 }
 

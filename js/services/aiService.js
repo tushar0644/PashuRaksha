@@ -39,7 +39,7 @@ class AIService {
       if (treatments && treatments.length > 0) {
         context += `[ACTIVE TREATMENTS & WITHDRAWALS]\n`;
         treatments.forEach(t => {
-          const tag = t.animals ? t.animals.animal_tag : t.animalId;
+          const tag = t.animals ? t.animals.animal_tag : t.animal_id;
           const med = t.medicines ? t.medicines.name : t.medicine;
           context += `- Animal ${tag} | Medicine: ${med} | Dosage: ${t.dosage} | Route: ${t.route} | Ends: ${t.end_date} | Withdrawal Ends: ${t.withdrawal_end_date}\n`;
         });

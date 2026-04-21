@@ -13,13 +13,13 @@ class TreatmentService {
           animals ( animal_tag ),
           medicines ( name, withdrawal_milk, withdrawal_meat, residue_limit )
         `)
-        .order('treatment_date', { ascending: false });
-        
+        .order('start_date', { ascending: false });
+
       if (error) throw error;
       return data || [];
     } catch (error) {
       console.error('Error fetching treatments:', error);
-      if(window.mockData) return window.mockData.treatments;
+      if (window.mockData) return window.mockData.treatments;
       return [];
     }
   }
@@ -38,7 +38,7 @@ class TreatmentService {
         .select('id')
         .eq('owner_id', session.user.id)
         .single();
-        
+
       if (farmError || !farmData) throw new Error("Farm profile not found. Please complete your profile first.");
 
       // 3. Construct Forensic Payload (Mapping to user's expected schema)
@@ -53,7 +53,6 @@ class TreatmentService {
         start_date: treatmentData.start_date,
         end_date: treatmentData.end_date,
         withdrawal_end_date: treatmentData.withdrawal_end_date,
-        treatment_date: treatmentData.start_date, // Compatibility
         prescribed_by: treatmentData.prescribed_by || treatmentData.vet || 'Unknown Vet',
         notes: treatmentData.notes || ''
       };
@@ -79,7 +78,7 @@ class TreatmentService {
       if (error) {
         throw new Error(`${error.message} (Code: ${error.code})`);
       }
-      
+
       if (!data || data.length === 0) {
         throw new Error("Insert succeeded but no data was returned. Check RLS policies.");
       }
