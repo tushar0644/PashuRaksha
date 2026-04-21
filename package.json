@@ -4,6 +4,8 @@
   "description": "��#\u0000 \u0000P\u0000a\u0000s\u0000h\u0000u\u0000R\u0000a\u0000k\u0000s\u0000h\u0000a\u0000\r\u0000 \u0000",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

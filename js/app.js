@@ -273,6 +273,25 @@ async function renderDashboard(container) {
       </div>
     </div>
 
+    <!-- Health Scanner Section -->
+    <div class="glass-panel p-6 mb-8 slide-up" style="animation-delay: 0.1s">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-bold text-gray-800 brand-font flex items-center">
+          <i data-lucide="activity" class="w-5 h-5 mr-2 text-primary"></i>
+          Live Health Scanner
+        </h3>
+        <span class="flex items-center text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-full uppercase tracking-wider animate-pulse">
+          <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></span>
+          Live Feed
+        </span>
+      </div>
+      <div id="health-scanner-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="flex justify-center p-8 col-span-full">
+          <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-primary"></i>
+        </div>
+      </div>
+    </div>
+
     <!-- Charts Area -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 glass-panel p-6 slide-up">
@@ -454,6 +473,70 @@ async function renderDashboard(container) {
   if(!alertHtml) alertHtml = '<p class="text-sm text-gray-500">No active restrictions. All products safe for release.</p>';
   alertsContainer.innerHTML = alertHtml;
   if(window.lucide) window.lucide.createIcons();
+
+  // Health Scanner Update Logic
+  async function updateHealthScanner() {
+    const logs = await window.healthService.getLatestHealthLogs();
+    const scannerContent = document.getElementById('health-scanner-content');
+    if (!scannerContent) {
+      clearInterval(window.healthScannerInterval);
+      return;
+    }
+
+    if (!logs || logs.length === 0) {
+      scannerContent.innerHTML = '<p class="text-sm text-gray-500 col-span-full text-center py-8">No live health data received yet.</p>';
+      return;
+    }
+
+    scannerContent.innerHTML = logs.map(log => {
+      const isFever = parseFloat(log.temperature) > 102.5;
+      const statusColor = isFever ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100';
+      const tempColor = isFever ? 'text-red-600' : 'text-gray-800';
+      
+      return `
+        <div class="p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-all ${isFever ? 'border-red-200 bg-red-50/10' : 'border-gray-100'}">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Animal ID</p>
+              <h4 class="text-base font-bold text-gray-800">${log.animal_id}</h4>
+            </div>
+            <div class="px-2 py-1 rounded-lg ${statusColor} text-[10px] font-bold border">
+              ${log.status || (isFever ? 'Fever Alert' : 'Normal')}
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-between mt-2">
+            <div class="flex items-center">
+              <div class="p-1.5 rounded-lg ${isFever ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-primary'} mr-2.5">
+                <i data-lucide="thermometer" class="w-4 h-4"></i>
+              </div>
+              <span class="text-xl font-bold ${tempColor}">${log.temperature}°F</span>
+            </div>
+            <div class="text-right">
+              <p class="text-[10px] text-gray-400">Last Sync</p>
+              <p class="text-[10px] font-medium text-gray-600">${new Date(log.updated_at).toLocaleTimeString()}</p>
+            </div>
+          </div>
+          
+          ${isFever ? `
+            <div class="mt-3 p-2 bg-red-600 text-white rounded-lg flex items-center space-x-2 shadow-sm animate-bounce">
+              <i data-lucide="alert-triangle" class="w-3 h-3 text-white"></i>
+              <span class="text-[10px] font-bold uppercase tracking-wider">Possible Fever</span>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+    
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  // Initial update
+  updateHealthScanner();
+  
+  // Set auto-refresh
+  if (window.healthScannerInterval) clearInterval(window.healthScannerInterval);
+  window.healthScannerInterval = setInterval(updateHealthScanner, 5000);
 }
 
 async function renderAnimals(container) {

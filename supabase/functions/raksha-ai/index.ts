@@ -1,23 +1,45 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// @ts-nocheck
+// Supabase Edge Functions run in Deno. This file might show errors in a Node.js IDE.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { message } = await req.json()
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY')
 
     if (!GROQ_API_KEY) {
+      console.error('GROQ_API_KEY is missing');
       return new Response(
         JSON.stringify({ error: 'GROQ_API_KEY not found in secrets' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Safely parse JSON body
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('JSON Parse Error:', e);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { message } = body;
+    if (!message) {
+      return new Response(
+        JSON.stringify({ error: 'Message is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -43,6 +65,18 @@ Keep answers short and actionable. If serious, say "तुरंत डॉक्
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Groq API Error:', data);
+      return new Response(
+        JSON.stringify({ 
+          error: 'AI Service Error', 
+          details: data.error?.message || 'Upstream service failed' 
+        }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const reply = data.choices?.[0]?.message?.content || "I'm sorry, I couldn't process that request.";
 
     return new Response(
@@ -51,7 +85,9 @@ Keep answers short and actionable. If serious, say "तुरंत डॉक्
     )
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Unexpected Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
