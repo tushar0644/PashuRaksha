@@ -10,8 +10,10 @@ class TreatmentService {
         .from(this.table)
         .select(`
           *,
-          animals ( animal_tag ),
-          medicines ( name, withdrawal_milk, withdrawal_meat, residue_limit )
+          animals ( animal_code, animal_name, species ),
+          diseases ( disease_name ),
+          medicines ( medicine_name, category ),
+          doctors ( doctor_name )
         `)
         .order('start_date', { ascending: false });
 
@@ -19,75 +21,110 @@ class TreatmentService {
       return data || [];
     } catch (error) {
       console.error('Error fetching treatments:', error);
-      if (window.mockData) return window.mockData.treatments;
       return [];
     }
   }
 
-  async addTreatment(treatmentData) {
-    const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out (10s)')), ms));
-
+  async getFormData() {
     try {
-      // 1. Verify session
-      const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
-      if (sessionError || !session) throw new Error("Authentication failed: No active session.");
+      const [animalsRes, diseasesRes, medicinesRes, doctorsRes] = await Promise.all([
+        this.supabase.from('animals').select('id, animal_code, animal_name, species, breed'),
+        this.supabase.from('diseases').select('id, disease_name'),
+        this.supabase.from('medicines').select('id, medicine_name, category, withdrawal_days'),
+        this.supabase.from('doctors').select('id, doctor_name')
+      ]);
 
-      // 2. Fetch farm_id
-      const { data: farmData, error: farmError } = await this.supabase
-        .from('farms')
-        .select('id')
-        .eq('owner_id', session.user.id)
-        .single();
+      // Seed if empty (Demo Mode)
+      if ((!animalsRes.data || animalsRes.data.length === 0) && 
+          (!medicinesRes.data || medicinesRes.data.length === 0)) {
+        await this.seedDemoData();
+        return this.getFormData(); // Recurse once seeded
+      }
 
-      if (farmError || !farmData) throw new Error("Farm profile not found. Please complete your profile first.");
+      return {
+        animals: animalsRes.data || [],
+        diseases: diseasesRes.data || [],
+        medicines: medicinesRes.data || [],
+        doctors: doctorsRes.data || []
+      };
+    } catch (error) {
+      console.error('Error fetching form data:', error);
+      return { animals: [], diseases: [], medicines: [], doctors: [] };
+    }
+  }
 
-      // 3. Construct Forensic Payload (Mapping to user's expected schema)
+  async seedDemoData() {
+    console.log('Seeding Demo Data...');
+    try {
+      const animals = [
+        { animal_code: 'COW-001', animal_name: 'Gauri', species: 'Cow', breed: 'Gir', age_months: 36, status: 'Healthy' },
+        { animal_code: 'COW-002', animal_name: 'Laxmi', species: 'Cow', breed: 'Holstein', age_months: 48, status: 'Healthy' },
+        { animal_code: 'BUF-001', animal_name: 'Kali', species: 'Buffalo', breed: 'Murrah', age_months: 60, status: 'Healthy' }
+      ];
+      const medicines = [
+        { medicine_name: 'Oxytetracycline', category: 'Antibiotic', withdrawal_days: 7 },
+        { medicine_name: 'Amoxicillin', category: 'Antibiotic', withdrawal_days: 4 },
+        { medicine_name: 'Meloxicam', category: 'Pain Relief', withdrawal_days: 5 }
+      ];
+      const diseases = [
+        { disease_name: 'Mastitis', symptoms: 'Swollen udder, fever' },
+        { disease_name: 'FMD', symptoms: 'Blisters, drooling' }
+      ];
+      const doctors = [
+        { doctor_name: 'Dr. Sharma', specialization: 'Veterinary Surgeon' },
+        { doctor_name: 'Dr. Verma', specialization: 'Livestock Specialist' }
+      ];
+
+      await Promise.all([
+        this.supabase.from('animals').insert(animals),
+        this.supabase.from('medicines').insert(medicines),
+        this.supabase.from('diseases').insert(diseases),
+        this.supabase.from('doctors').insert(doctors)
+      ]);
+      console.log('Demo Data Seeded Successfully');
+    } catch (err) {
+      console.error('Seeding failed:', err);
+    }
+  }
+
+  async addTreatment(treatmentData) {
+    try {
+      // 1. Calculate fields
+      const medId = treatmentData.medicine_id;
+      const { data: med } = await this.supabase.from('medicines').select('withdrawal_days').eq('id', medId).single();
+      
+      const withdrawalDays = med ? (med.withdrawal_days || 0) : 0;
+      const milkStatus = withdrawalDays > 0 ? 'Blocked' : 'Safe';
+      
+      const safeReleaseDate = new Date(treatmentData.start_date);
+      safeReleaseDate.setDate(safeReleaseDate.getDate() + withdrawalDays);
+      const safeReleaseStr = safeReleaseDate.toISOString().split('T')[0];
+
+      // 2. Insert
       const payload = {
-        farm_id: farmData.id,
         animal_id: treatmentData.animal_id,
+        disease_id: treatmentData.disease_id,
         medicine_id: treatmentData.medicine_id,
-        medicine_name: treatmentData.medicine_name || treatmentData.medicine, // Standardizing
-        diagnosis: treatmentData.diagnosis || treatmentData.disease || 'General Treatment',
+        doctor_id: treatmentData.doctor_id,
         dosage: treatmentData.dosage,
         route: treatmentData.route,
         start_date: treatmentData.start_date,
         end_date: treatmentData.end_date,
-        withdrawal_end_date: treatmentData.withdrawal_end_date,
-        prescribed_by: treatmentData.prescribed_by || treatmentData.vet || 'Unknown Vet',
-        notes: treatmentData.notes || ''
+        notes: treatmentData.notes || '',
+        milk_status: milkStatus,
+        safe_release_date: safeReleaseStr,
+        created_at: new Date().toISOString()
       };
 
-      console.group('🔍 Forensic Debug: Log Treatment');
-      console.log('Table: treatments');
-      console.log('User ID:', session.user.id);
-      console.log('Payload:', payload);
-      console.groupEnd();
+      const { data, error } = await this.supabase.from(this.table).insert([payload]).select();
 
-      // 4. Execute Insert
-      const { data, error, status } = await Promise.race([
-        this.supabase.from(this.table).insert([payload]).select(),
-        timeout(10000)
-      ]);
-
-      console.group('💾 Supabase Response');
-      console.log('Status:', status);
-      console.log('Data:', data);
-      console.log('Error:', error);
-      console.groupEnd();
-
-      if (error) {
-        throw new Error(`${error.message} (Code: ${error.code})`);
-      }
-
-      if (!data || data.length === 0) {
-        throw new Error("Insert succeeded but no data was returned. Check RLS policies.");
-      }
-
-      window.showToast('Treatment logged successfully!', 'success');
+      if (error) throw error;
+      
+      window.showToast('Treatment logged successfully', 'success');
       return data[0];
     } catch (error) {
-      console.error('❌ Forensic Debug Failure:', error);
-      window.showToast(`Log Failed: ${error.message}`, 'error');
+      console.error('Save failed:', error);
+      window.showToast('Error: ' + error.message, 'error');
       return null;
     }
   }

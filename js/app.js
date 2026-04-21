@@ -645,25 +645,28 @@ async function renderTreatments(container) {
   const treatments = await window.treatmentService.getTreatments();
 
   let rows = treatments.map(t => {
-    const date = t.start_date ? new Date(t.start_date).toLocaleDateString() : t.date;
-    const tag = t.animals ? t.animals.animal_tag : t.animalId;
-    const medName = t.medicines ? t.medicines.name : t.medicine;
+    const date = t.start_date ? new Date(t.start_date).toLocaleDateString() : 'N/A';
+    const tag = t.animals ? t.animals.animal_code : 'Unknown';
+    const medName = t.medicines ? t.medicines.medicine_name : 'Unknown';
+    const diseaseName = t.diseases ? t.diseases.disease_name : (t.notes ? t.notes.substring(0, 20) + '...' : 'N/A');
+    const doctorName = t.doctors ? t.doctors.doctor_name : 'N/A';
 
     return `
     <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
       <td class="py-4 px-6 font-medium text-gray-900">${date}</td>
       <td class="py-4 px-6 text-primary font-bold">${tag}</td>
       <td class="py-4 px-6 text-gray-800">${medName}</td>
-      <td class="py-4 px-6 text-gray-600">${t.disease || t.notes || 'N/A'}</td>
-      <td class="py-4 px-6 text-gray-600">${t.dosage || t.dose || 'N/A'}</td>
-      <td class="py-4 px-6 text-gray-500 text-sm">${t.vet_id || t.vet || 'Unknown'}</td>
+      <td class="py-4 px-6 text-gray-600">${diseaseName}</td>
+      <td class="py-4 px-6 text-gray-600">${t.dosage || 'N/A'}</td>
+      <td class="py-4 px-6 text-gray-500 text-sm">${doctorName}</td>
     </tr>
   `}).join('');
 
   let mobileCards = treatments.map(t => {
-    const date = t.start_date ? new Date(t.start_date).toLocaleDateString() : t.date;
-    const tag = t.animals ? t.animals.animal_tag : t.animalId;
-    const medName = t.medicines ? t.medicines.name : t.medicine;
+    const date = t.start_date ? new Date(t.start_date).toLocaleDateString() : 'N/A';
+    const tag = t.animals ? t.animals.animal_code : 'Unknown';
+    const medName = t.medicines ? t.medicines.medicine_name : 'Unknown';
+    const doctorName = t.doctors ? t.doctors.doctor_name : 'N/A';
 
     return `
     <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-2">
@@ -672,11 +675,11 @@ async function renderTreatments(container) {
         <span class="text-xs text-gray-500 font-medium">${date}</span>
       </div>
       <div>
-        <p class="text-sm font-bold text-gray-800">${medName} <span class="text-gray-500 font-normal">(${t.dosage || t.dose || 'N/A'})</span></p>
-        <p class="text-sm text-gray-600 mt-1"><span class="text-gray-400 text-xs uppercase">Diagnosis:</span> ${t.disease || t.notes || 'N/A'}</p>
+        <p class="text-sm font-bold text-gray-800">${medName} <span class="text-gray-500 font-normal">(${t.dosage || 'N/A'})</span></p>
+        <p class="text-sm text-gray-600 mt-1"><span class="text-gray-400 text-xs uppercase">Diagnosis:</span> ${t.diseases ? t.diseases.disease_name : (t.notes || 'N/A')}</p>
       </div>
       <div class="flex justify-between items-center text-xs text-gray-500 border-t border-gray-50 pt-2 mt-2">
-        <span><i data-lucide="user" class="w-3 h-3 inline mr-1"></i>${t.vet_id || t.vet || 'Unknown'}</span>
+        <span><i data-lucide="user" class="w-3 h-3 inline mr-1"></i>${doctorName}</span>
       </div>
     </div>
   `}).join('');
@@ -715,62 +718,53 @@ async function renderMRL(container) {
   const treatments = await window.treatmentService.getTreatments();
 
   let rows = treatments.map(t => {
-    const medName = t.medicines ? t.medicines.name : t.medicine;
-    const med = mockData.medicines.find(m => m.name === medName);
-    if (!med) return '';
-
-    const dateStr = t.start_date || t.date;
-    const tag = t.animals ? t.animals.animal_tag : t.animalId;
-
-    const milkStatus = getMRLStatus(dateStr, med.withdrawalMilk);
-    const meatStatus = getMRLStatus(dateStr, med.withdrawalMeat);
-
-    const milkEnd = calculateWithdrawal(dateStr, med.withdrawalMilk).toISOString().split('T')[0];
+    const medName = t.medicines ? t.medicines.medicine_name : 'Unknown';
+    const tag = t.animals ? t.animals.animal_code : 'Unknown';
+    const dateStr = t.start_date;
+    const releaseDate = t.safe_release_date || 'N/A';
+    const status = t.milk_status || 'Safe';
+    const statusColor = status === 'Safe' ? 'status-safe' : 'status-danger';
 
     return `
       <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
         <td class="py-4 px-6 font-bold text-gray-900">${tag}</td>
         <td class="py-4 px-6 text-gray-600">${medName}</td>
-        <td class="py-4 px-6 text-gray-500 text-sm">${dateStr.substring(0, 10)}</td>
+        <td class="py-4 px-6 text-gray-500 text-sm">${dateStr}</td>
         <td class="py-4 px-6">
           <div class="flex items-center space-x-2">
-            <span class="status-pill ${milkStatus.color === 'safe' ? 'status-safe' : (milkStatus.color === 'warning' ? 'status-warning' : 'status-danger')}">
-              ${milkStatus.status}
+            <span class="status-pill ${statusColor}">
+              ${status}
             </span>
-            ${milkStatus.status !== 'Safe' ? `<span class="text-xs text-gray-500 font-medium">(${milkStatus.remaining} days left)</span>` : ''}
           </div>
         </td>
-        <td class="py-4 px-6 text-gray-600 text-sm">${med.withdrawalMilk === 0 ? 'N/A' : milkEnd}</td>
+        <td class="py-4 px-6 text-gray-600 text-sm">${releaseDate}</td>
       </tr>
     `;
   }).join('');
 
   let mobileCards = treatments.map(t => {
-    const medName = t.medicines ? t.medicines.name : t.medicine;
-    const med = mockData.medicines.find(m => m.name === medName);
-    if (!med) return '';
-
-    const dateStr = t.start_date || t.date;
-    const tag = t.animals ? t.animals.animal_tag : t.animalId;
-
-    const milkStatus = getMRLStatus(dateStr, med.withdrawalMilk);
-    const milkEnd = calculateWithdrawal(dateStr, med.withdrawalMilk).toISOString().split('T')[0];
+    const medName = t.medicines ? t.medicines.medicine_name : 'Unknown';
+    const tag = t.animals ? t.animals.animal_code : 'Unknown';
+    const dateStr = t.start_date;
+    const releaseDate = t.safe_release_date || 'N/A';
+    const status = t.milk_status || 'Safe';
+    const statusColor = status === 'Safe' ? 'status-safe' : 'status-danger';
 
     return `
     <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-2">
       <div class="flex justify-between items-start">
         <h4 class="font-bold text-gray-900 text-base">${tag}</h4>
-        <span class="status-pill ${milkStatus.color === 'safe' ? 'status-safe' : (milkStatus.color === 'warning' ? 'status-warning' : 'status-danger')} text-[10px] py-0.5 px-2">
-          ${milkStatus.status}
+        <span class="status-pill ${statusColor} text-[10px] py-0.5 px-2">
+          ${status}
         </span>
       </div>
       <div>
         <p class="text-sm font-bold text-gray-800">${medName}</p>
-        <p class="text-sm text-gray-600 mt-1">Treated: ${dateStr.substring(0, 10)}</p>
+        <p class="text-sm text-gray-600 mt-1">Treated: ${dateStr}</p>
       </div>
       <div class="flex justify-between items-center text-xs border-t border-gray-50 pt-2 mt-2">
         <span class="text-gray-500">Safe Release:</span>
-        <span class="${milkStatus.status !== 'Safe' ? 'text-red-500 font-bold' : 'text-emerald-600 font-bold'}">${med.withdrawalMilk === 0 ? 'Immediately' : milkEnd}</span>
+        <span class="${status !== 'Safe' ? 'text-red-500 font-bold' : 'text-emerald-600 font-bold'}">${releaseDate}</span>
       </div>
     </div>
     `;
@@ -1000,43 +994,26 @@ window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
   `;
   if (window.lucide) window.lucide.createIcons();
 
-  // Fetch data
-  const animals = await window.animalService.getAnimals();
-  let diseases = [];
-  let medicines = [];
+window.openAddTreatmentModal = async function (preselectedAnimalId) {
+  const container = document.getElementById('modal-container');
+  
+  // Show loading state in modal container
+  container.innerHTML = `
+    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex justify-center items-center z-50">
+      <div class="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center">
+        <i data-lucide="loader-2" class="w-10 h-10 animate-spin text-primary mb-4"></i>
+        <p class="text-gray-600 font-medium">Loading Form Data...</p>
+      </div>
+    </div>
+  `;
+  if (window.lucide) window.lucide.createIcons();
 
-  if (window.supabaseClient) {
-    // 1. Fetch Diseases
-    const { data: dbDiseases, error: diseaseError } = await window.supabaseClient
-      .from('diseases')
-      .select('id, name, symptoms');
+  // 1. Fetch all data using the service
+  const { animals, diseases, medicines, doctors } = await window.treatmentService.getFormData();
 
-    if (diseaseError) {
-      console.error('Error fetching diseases:', diseaseError);
-      diseases = window.mockData && window.mockData.diseases ? window.mockData.diseases : [];
-    } else {
-      diseases = dbDiseases || [];
-    }
-
-    // 2. Fetch Medicines
-    const { data: dbMedicines, error: medError } = await window.supabaseClient
-      .from('medicines')
-      .select('id, name, category, withdrawal_milk_days');
-
-    if (medError) {
-      console.error('Error fetching medicines:', medError);
-      medicines = window.mockData ? window.mockData.medicines : [];
-    } else {
-      medicines = dbMedicines || [];
-    }
-  } else {
-    diseases = window.mockData && window.mockData.diseases ? window.mockData.diseases : [];
-    medicines = window.mockData ? window.mockData.medicines : [];
-  }
-
-  if (!animals || animals.length === 0) {
+  if (animals.length === 0) {
     container.innerHTML = `
-      <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 fade-in">
+      <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex justify-center items-center z-50 fade-in">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 m-4 relative text-center">
           <div class="mx-auto w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
             <i data-lucide="alert-circle" class="w-8 h-8"></i>
@@ -1045,7 +1022,7 @@ window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
           <p class="text-gray-500 mb-6">You need to add an animal to your registry before logging a treatment.</p>
           <div class="flex justify-center space-x-3">
             <button onclick="document.getElementById('modal-container').innerHTML=''" class="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
-            <button onclick="document.getElementById('modal-container').innerHTML=''; document.querySelector('[data-view=\\'animals\\']').click(); window.openAddAnimalModal();" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-sm transition-colors">Add Animal First</button>
+            <button onclick="document.getElementById('modal-container').innerHTML=''; window.switchView('animals'); window.openAddAnimalModal();" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium shadow-sm transition-colors">Add Animal First</button>
           </div>
         </div>
       </div>
@@ -1054,13 +1031,20 @@ window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
     return;
   }
 
-  let animalOptions = animals.map(a => `<option value="${a.id}" ${a.id === preselectedAnimalId || a.animal_tag === preselectedAnimalId ? 'selected' : ''}>${a.animal_tag || a.id} - ${a.breed}</option>`).join('');
-  let diseaseOptions = diseases.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-  let medicineOptions = medicines.map(m => `<option value="${m.id}">${m.name} (${normalizeCategory(m.category)})</option>`).join('');
+  // 2. Build Options
+  const animalOptions = animals.map(a => `
+    <option value="${a.id}" ${a.id === preselectedAnimalId || a.animal_code === preselectedAnimalId ? 'selected' : ''}>
+      ${a.animal_code} - ${a.animal_name || 'Unnamed'} (${a.species})
+    </option>
+  `).join('');
 
-  window.modalDiseases = diseases;
-  window.modalMedicines = medicines;
+  const diseaseOptions = diseases.map(d => `<option value="${d.id}">${d.disease_name}</option>`).join('');
+  const medicineOptions = medicines.map(m => `<option value="${m.id}">${m.medicine_name} (${m.category})</option>`).join('');
+  const doctorOptions = doctors.map(d => `<option value="${d.id}">${d.doctor_name}</option>`).join('');
 
+  window.modalMedicines = medicines; // Store for info box logic
+
+  // 3. Render Modal
   container.innerHTML = `
     <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex justify-center items-end md:items-start z-50 fade-in">
       <div class="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full max-w-2xl p-6 md:p-8 m-0 md:m-4 relative md:mt-10 max-h-[90vh] overflow-y-auto">
@@ -1070,8 +1054,8 @@ window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
               <i data-lucide="syringe" class="w-6 h-6"></i>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-gray-800 brand-font" data-i18n="modal.logTreatment.title">Log Treatment</h2>
-              <p class="text-sm text-gray-500 mt-1" data-i18n="modal.logTreatment.desc">Record medicine, dosage, and start withdrawal tracking.</p>
+              <h2 class="text-2xl font-bold text-gray-800 brand-font">Log Treatment</h2>
+              <p class="text-sm text-gray-500 mt-1">Record medicine, dosage, and start withdrawal tracking.</p>
             </div>
           </div>
           <button onclick="document.getElementById('modal-container').innerHTML=''" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
@@ -1082,85 +1066,78 @@ window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
         <form id="treatment-form" class="space-y-5">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.selectAnimal">Select Animal</span> <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Select Animal <span class="text-red-500">*</span></label>
               <select id="trt-animal" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
-                <option value="" disabled selected>Search or select an animal...</option>
+                <option value="" disabled selected>Select an animal...</option>
                 ${animalOptions}
               </select>
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.disease">Disease / Condition</label>
-              ${diseases.length > 0 ? `
+              <label class="block text-sm font-medium text-gray-700 mb-1">Disease / Condition</label>
               <select id="trt-disease" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
-                <option value="" disabled selected>Search or select disease...</option>
+                <option value="" disabled selected>Select disease...</option>
                 ${diseaseOptions}
               </select>
-              <p id="trt-disease-symptoms" class="text-xs text-primary mt-1 hidden font-medium"></p>
-              ` : '<p class="text-sm text-gray-500 italic p-2 bg-gray-50 rounded-lg border border-gray-100">No data found</p>'}
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.medicineName">Medicine Name</span> <span class="text-red-500">*</span></label>
-              ${medicines.length > 0 ? `
+              <label class="block text-sm font-medium text-gray-700 mb-1">Medicine Name <span class="text-red-500">*</span></label>
               <select id="trt-medicine" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
                 <option value="" disabled selected>Choose medicine</option>
                 ${medicineOptions}
               </select>
               <div id="trt-medicine-info" class="mt-2 space-y-1 hidden bg-blue-50 p-2 rounded-lg border border-blue-100">
-                <p class="text-xs text-blue-800 flex items-center"><i data-lucide="tag" class="w-3 h-3 mr-1 opacity-70"></i> Category: <span id="trt-med-cat" class="ml-1 font-bold"></span></p>
-                <p class="text-xs text-red-600 flex items-center"><i data-lucide="alert-circle" class="w-3 h-3 mr-1 opacity-70"></i> Withdrawal: <span id="trt-med-withdraw" class="ml-1 font-bold"></span></p>
+                <p class="text-xs text-blue-800 flex items-center"><i data-lucide="tag" class="w-3 h-3 mr-1"></i> Category: <span id="trt-med-cat" class="ml-1 font-bold"></span></p>
+                <p class="text-xs text-red-600 flex items-center"><i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i> Withdrawal: <span id="trt-med-withdraw" class="ml-1 font-bold"></span></p>
               </div>
-              ` : '<p class="text-sm text-gray-500 italic p-2 bg-gray-50 rounded-lg border border-gray-100">No data found</p>'}
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.dosage">Dosage</span> <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Dosage <span class="text-red-500">*</span></label>
               <input type="text" id="trt-dosage" required placeholder="e.g. 15ml" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.route">Route</label>
-              <select id="trt-route" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
-                <option value="IM">Intramuscular (IM)</option>
-                <option value="SC">Subcutaneous (SC)</option>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Route <span class="text-red-500">*</span></label>
+              <select id="trt-route" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+                <option value="Intramuscular (IM)" selected>Intramuscular (IM)</option>
                 <option value="Oral">Oral</option>
+                <option value="Subcutaneous (SC)">Subcutaneous (SC)</option>
+                <option value="Intravenous (IV)">Intravenous (IV)</option>
                 <option value="Topical">Topical</option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.startDate">Start Date</span> <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date <span class="text-red-500">*</span></label>
               <input type="date" id="trt-start-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1"><span data-i18n="modal.endDate">End Date</span> <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">End Date <span class="text-red-500">*</span></label>
               <input type="date" id="trt-end-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.prescribedBy">Prescribed By</label>
-              <select id="trt-vet" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Prescribed By</label>
+              <select id="trt-doctor" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white">
                 <option value="" disabled selected>Select Doctor</option>
-                <option value="Dr. Sharma">Dr. Sharma</option>
-                <option value="Dr. Verma">Dr. Verma</option>
-                <option value="Dr. Singh">Dr. Singh</option>
-                <option value="Dr. Patel">Dr. Patel</option>
+                ${doctorOptions}
               </select>
             </div>
           </div>
           
-          <div class="md:col-span-2 pb-20 md:pb-0">
-            <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="modal.notes">Notes / Instructions</label>
-            <textarea id="trt-notes" rows="3" placeholder="Additional treatment notes..." class="w-full px-4 py-3 md:py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"></textarea>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes / Instructions</label>
+            <textarea id="trt-notes" rows="3" placeholder="Additional treatment notes..." class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"></textarea>
           </div>
 
-          <div class="fixed md:static bottom-0 left-0 right-0 p-4 md:p-0 md:pt-5 bg-white md:bg-transparent border-t border-gray-100 flex flex-col md:flex-row justify-end md:space-x-3 mt-6 z-20 shadow-[0_-10px_15px_-3px_rgb(0,0,0,0.05)] md:shadow-none space-y-3 md:space-y-0">
-            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="w-full md:w-auto px-6 py-3.5 md:py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 font-medium transition-colors order-2 md:order-1" data-i18n="modal.cancel">Cancel</button>
-            <button type="submit" id="trt-submit" class="w-full md:w-auto px-6 py-3.5 md:py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark font-medium shadow-md transition-all flex justify-center items-center hover:-translate-y-0.5 order-1 md:order-2">
+          <div class="flex flex-col md:flex-row justify-end space-y-3 md:space-y-0 md:space-x-3 mt-6">
+            <button type="button" onclick="document.getElementById('modal-container').innerHTML=''" class="px-6 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 font-medium transition-colors">Cancel</button>
+            <button type="submit" id="trt-submit" class="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark font-medium shadow-md transition-all flex justify-center items-center">
               <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
-              <span data-i18n="modal.saveTreatment">Save Treatment</span>
+              <span>Save Treatment</span>
             </button>
           </div>
         </form>
@@ -1169,144 +1146,69 @@ window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
   `;
 
   if (window.lucide) window.lucide.createIcons();
-  if (window.i18n) window.i18n.updateDOM();
 
-  setTimeout(() => {
-    const disSelect = document.getElementById('trt-disease');
-    if (disSelect) {
-      disSelect.addEventListener('change', (e) => {
-        const d = window.modalDiseases.find(x => x.id === e.target.value);
-        const sympEl = document.getElementById('trt-disease-symptoms');
-        if (d && d.symptoms) {
-          sympEl.textContent = 'Common Symptoms: ' + d.symptoms;
-          sympEl.classList.remove('hidden');
-        } else {
-          sympEl.classList.add('hidden');
-        }
-      });
+  // 4. Medicine Info Logic
+  const medSelect = document.getElementById('trt-medicine');
+  medSelect.addEventListener('change', (e) => {
+    const m = window.modalMedicines.find(x => x.id === e.target.value);
+    const infoEl = document.getElementById('trt-medicine-info');
+    if (m) {
+      document.getElementById('trt-med-cat').textContent = m.category;
+      document.getElementById('trt-med-withdraw').textContent = m.withdrawal_days ? m.withdrawal_days + ' Days (Milk)' : 'None';
+      infoEl.classList.remove('hidden');
+    } else {
+      infoEl.classList.add('hidden');
     }
+  });
 
-    const medSelect = document.getElementById('trt-medicine');
-    if (medSelect) {
-      medSelect.addEventListener('change', (e) => {
-        const m = window.modalMedicines.find(x => x.id === e.target.value);
-        const infoEl = document.getElementById('trt-medicine-info');
-        if (m) {
-          const category = normalizeCategory(m.category);
-          const withdrawalDays = m.withdrawal_milk_days !== undefined ? m.withdrawal_milk_days : (m.withdrawalMilk || 0);
+  // 5. Date Defaults
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('trt-start-date').value = today;
+  document.getElementById('trt-end-date').value = today;
 
-          document.getElementById('trt-med-cat').textContent = category;
-          document.getElementById('trt-med-withdraw').textContent = withdrawalDays ? withdrawalDays + ' Days (Milk)' : 'None';
-          infoEl.classList.remove('hidden');
-        } else {
-          infoEl.classList.add('hidden');
-        }
-      });
-    }
-  }, 50);
-
-  // Set default dates (Today in local YYYY-MM-DD format)
-  const today = new Date();
-  const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-
-  setTimeout(() => {
-    const startInput = document.getElementById('trt-start-date');
-    const endInput = document.getElementById('trt-end-date');
-    if (startInput) startInput.value = todayStr;
-    if (endInput) endInput.value = todayStr;
-  }, 100);
-
-  // Handle form submission
+  // 6. Handle Submission
   document.getElementById('treatment-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    // 1. Capture Form Data
-    const animalId = document.getElementById('trt-animal').value;
-    const medicineId = document.getElementById('trt-medicine') ? document.getElementById('trt-medicine').value : '';
-    const diseaseId = document.getElementById('trt-disease') ? document.getElementById('trt-disease').value : null;
-    const dosage = document.getElementById('trt-dosage').value;
-    const route = document.getElementById('trt-route').value;
-    const startDateVal = document.getElementById('trt-start-date').value;
-    const endDateVal = document.getElementById('trt-end-date').value;
-    const prescribedBy = document.getElementById('trt-vet').value;
-    const notes = document.getElementById('trt-notes').value;
-
-    // 2. Date Safety (Ensure YYYY-MM-DD for Supabase)
-    const toDBDate = (val) => {
-      if (!val) return null;
-      // If DD-MM-YYYY, convert to YYYY-MM-DD
-      if (val.includes('-') && val.split('-')[0].length === 2) {
-        const parts = val.split('-');
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
-      }
-      return val; // Assume it's already YYYY-MM-DD
+    const payload = {
+      animal_id: document.getElementById('trt-animal').value,
+      disease_id: document.getElementById('trt-disease').value || null,
+      medicine_id: document.getElementById('trt-medicine').value,
+      doctor_id: document.getElementById('trt-doctor').value || null,
+      dosage: document.getElementById('trt-dosage').value,
+      route: document.getElementById('trt-route').value,
+      start_date: document.getElementById('trt-start-date').value,
+      end_date: document.getElementById('trt-end-date').value,
+      notes: document.getElementById('trt-notes').value
     };
 
-    const start_date = toDBDate(startDateVal);
-    const end_date = toDBDate(endDateVal);
-
-    // 3. Validation
-    if (!animalId) return window.showToast('Animal ID missing. Please try again.', 'error');
-    if (!medicineId) return window.showToast('Please select a medicine.', 'warning');
-    if (!start_date || !end_date) return window.showToast('Please select start and end dates.', 'warning');
+    // Validation Check (redundant due to 'required' but good for safety)
+    if (!payload.animal_id || !payload.medicine_id || !payload.dosage || !payload.route) {
+      window.showToast('Please fill all required fields.', 'warning');
+      return;
+    }
 
     const btn = document.getElementById('trt-submit');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> <span>Saving...</span>';
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> Saving...';
     btn.disabled = true;
+    if (window.lucide) window.lucide.createIcons();
 
-    try {
-      // 4. Calculate Withdrawal Date
-      const medInfo = window.modalMedicines.find(m => m.id === medicineId);
-      const diseaseInfo = window.modalDiseases.find(d => d.id === diseaseId);
+    const res = await window.treatmentService.addTreatment(payload);
+
+    if (res) {
+      document.getElementById('modal-container').innerHTML = '';
       
-      let withdrawal_end_date = end_date;
-      if (medInfo) {
-        const withdrawalDays = medInfo.withdrawal_milk_days !== undefined ? medInfo.withdrawal_milk_days : (medInfo.withdrawalMilk || 0);
-        if (withdrawalDays > 0) {
-          const wDate = new Date(end_date);
-          wDate.setDate(wDate.getDate() + withdrawalDays);
-          withdrawal_end_date = wDate.toISOString().split('T')[0];
-        }
+      // Refresh UI (Dashboard, Treatments, MRL Tracker)
+      const activeNav = document.querySelector('.nav-item.active');
+      if (activeNav && window.switchView) {
+        window.switchView(activeNav.dataset.view);
       }
-
-      // 5. Construct Payload
-      const payload = {
-        animal_id: animalId,
-        medicine_id: medicineId,
-        medicine_name: medInfo ? medInfo.name : 'Unknown',
-        disease_id: diseaseId,
-        diagnosis: diseaseInfo ? diseaseInfo.name : (notes.substring(0, 50) || 'General Treatment'),
-        dosage: dosage,
-        route: route,
-        start_date: start_date,
-        end_date: end_date,
-        withdrawal_end_date: withdrawal_end_date,
-        prescribed_by: prescribedBy || 'Self',
-        notes: notes
-      };
-
-      // 6. Save
-      const res = await window.treatmentService.addTreatment(payload);
-
-      if (res) {
-        document.getElementById('modal-container').innerHTML = '';
-        
-        // Refresh current view instantly
-        const activeNav = document.querySelector('.nav-item.active');
-        if (activeNav && window.switchView) {
-          window.switchView(activeNav.dataset.view);
-        }
-        
-        if (typeof refreshAMUChart === 'function') refreshAMUChart(6);
-      } else {
-        throw new Error("Service returned no result");
-      }
-    } catch (err) {
-      console.error('Save failed:', err);
-      btn.innerHTML = originalText;
+      if (typeof refreshAMUChart === 'function') refreshAMUChart(6);
+    } else {
+      btn.innerHTML = originalContent;
       btn.disabled = false;
-      window.showToast('Failed to save treatment: ' + err.message, 'error');
+      if (window.lucide) window.lucide.createIcons();
     }
   });
 };
