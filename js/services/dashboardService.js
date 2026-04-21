@@ -3,102 +3,93 @@ class DashboardService {
     this.supabase = window.supabaseClient;
   }
 
-  async getDashboardStats() {
+  async getDashboardSummary() {
     try {
-      // 1. Total Animals
-      const { count: animalCount, error: animalError } = await this.supabase
-        .from('animals')
-        .select('*', { count: 'exact', head: true });
-
-      // 2. Active Treatments (Simplified query)
-      const { count: treatmentCount, error: treatmentError } = await this.supabase
-        .from('treatments')
-        .select('*', { count: 'exact', head: true });
-
-      if (animalError || treatmentError) throw new Error('Failed to fetch stats');
-
-      return {
-        totalAnimals: animalCount || 0,
-        activeTreatments: treatmentCount || 0,
-        restrictedCount: 0 // In real app, calculate this via edge function or DB view
-      };
+      const { data, error } = await this.supabase
+        .from('dashboard_summary')
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      return data;
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      return { totalAnimals: 0, activeTreatments: 0, restrictedCount: 0 };
+      console.error('Error fetching dashboard summary:', error);
+      return {
+        total_live_animals: 0,
+        critical_animals: 0,
+        active_mrl_alerts: 0,
+        total_antibiotic_doses: 0
+      };
+    }
+  }
+
+  async getLiveHealthLogs() {
+    try {
+      const { data, error } = await this.supabase
+        .from('live_health_sensor')
+        .select('*')
+        .order('recorded_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching live health logs:', error);
+      return [];
+    }
+  }
+
+  async getMRLAlerts() {
+    try {
+      const { data, error } = await this.supabase
+        .from('mrl_alerts')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching MRL alerts:', error);
+      return [];
     }
   }
 
   async getAMUTrends(monthsLimit = 6) {
     try {
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - monthsLimit);
-      const startDateStr = startDate.toISOString().split('T')[0];
-
-      // Fetch treatments with medicine details
-      const { data: treatments, error } = await this.supabase
-        .from('treatments')
-        .select(`
-          start_date,
-          medicines ( category )
-        `)
-        .gte('start_date', startDateStr);
+      const { data, error } = await this.supabase
+        .from('amu_trends')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(monthsLimit);
 
       if (error) throw error;
 
-      // Group by month
-      const months = [];
-      for (let i = monthsLimit - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        months.push(d.toLocaleString('default', { month: 'short' }));
+      if (!data || data.length === 0) return { labels: [], antibiotics: [], totalAntibiotics: 0 };
+
+      const labels = data.map(d => d.month_name);
+      const antibiotics = data.map(d => d.antibiotic_doses);
+      const treatmentCounts = data.map(d => d.treatment_count);
+      const totalAntibiotics = antibiotics.reduce((a, b) => a + b, 0);
+
+      // Simple calculation for change vs last month
+      let antiChange = 0;
+      if (data.length >= 2) {
+        const last = data[data.length - 1].antibiotic_doses;
+        const prev = data[data.length - 2].antibiotic_doses;
+        antiChange = prev === 0 ? (last > 0 ? 100 : 0) : Math.round(((last - prev) / prev) * 100);
       }
 
-      const antibioticCounts = new Array(monthsLimit).fill(0);
-      const vaccineCounts = new Array(monthsLimit).fill(0);
-
-      const monthNames = months;
-
-      treatments.forEach(t => {
-        const tDate = new Date(t.start_date);
-        const monthName = tDate.toLocaleString('default', { month: 'short' });
-        const monthIndex = monthNames.indexOf(monthName);
-
-        if (monthIndex !== -1) {
-          const rawCat = t.medicines?.category;
-          const category = normalizeCategory(rawCat);
-
-          if (category === 'Antibiotic') {
-            antibioticCounts[monthIndex]++;
-          } else if (category === 'Vaccine') {
-            vaccineCounts[monthIndex]++;
-          }
-        }
-      });
-
-      // Calculate percentage changes vs previous month (last index vs second to last)
-      const lastIdx = monthsLimit - 1;
-      const prevIdx = monthsLimit - 2;
-
-      const calcChange = (current, previous) => {
-        if (previous === 0) return current > 0 ? 100 : 0;
-        return Math.round(((current - previous) / previous) * 100);
-      };
-
-      const antiChange = calcChange(antibioticCounts[lastIdx], antibioticCounts[prevIdx]);
-      const vacChange = calcChange(vaccineCounts[lastIdx], vaccineCounts[prevIdx]);
-
       return {
-        labels: monthNames,
-        antibiotics: antibioticCounts,
-        vaccines: vaccineCounts,
-        totalAntibiotics: antibioticCounts.reduce((a, b) => a + b, 0),
-        totalVaccines: vaccineCounts.reduce((a, b) => a + b, 0),
-        antiChange,
-        vacChange
+        labels,
+        antibiotics,
+        treatmentCounts,
+        totalAntibiotics,
+        antiChange
       };
     } catch (error) {
       console.error('Error fetching AMU trends:', error);
-      return { labels: [], antibiotics: [], vaccines: [], totalAntibiotics: 0, totalVaccines: 0 };
+      return { labels: [], antibiotics: [], totalAntibiotics: 0 };
     }
   }
 }

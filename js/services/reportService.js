@@ -52,16 +52,17 @@ class ReportService {
       doc.text("MRL & Treatment Logs", 20, 105);
 
       const tableData = treatments.map(t => {
-        const medName = t.medicines ? t.medicines.name : t.medicine;
-        const med = mockData.medicines.find(m => m.name === medName);
+        const med = t.medicines;
+        const medName = med ? med.medicine_name : 'Unknown';
         let mrlStatus = "N/A";
         if (med) {
-          const status = getMRLStatus(t.start_date || t.date, med.withdrawalMilk);
-          mrlStatus = status.status === 'Safe' ? 'SAFE' : `RESTRICTED (${status.remaining}d)`;
+          const withdrawalDays = med.withdrawal_days || 0;
+          const status = getMRLStatus(t.start_date, withdrawalDays);
+          mrlStatus = status && status.status === 'Safe' ? 'SAFE' : (status ? `RESTRICTED (${status.remaining}d)` : 'RESTRICTED');
         }
         return [
           new Date(t.start_date).toLocaleDateString(),
-          t.animals?.animal_tag || t.animal_id,
+          t.animals?.animal_code || t.animal_id || 'Unknown',
           medName,
           t.dosage || 'N/A',
           mrlStatus
@@ -107,11 +108,11 @@ class ReportService {
       // Check if any animal is under restriction
       let restrictedCount = 0;
       treatments.forEach(t => {
-        const medName = t.medicines ? t.medicines.name : t.medicine;
-        const med = mockData.medicines.find(m => m.name === medName);
+        const med = t.medicines;
         if (med) {
-          const status = getMRLStatus(t.start_date || t.date, med.withdrawalMilk);
-          if (status.status === 'Restricted') restrictedCount++;
+          const withdrawalDays = med.withdrawal_days || 0;
+          const status = getMRLStatus(t.start_date, withdrawalDays);
+          if (status && status.status === 'Restricted') restrictedCount++;
         }
       });
 

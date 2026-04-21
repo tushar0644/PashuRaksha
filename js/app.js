@@ -205,56 +205,37 @@ function initNotifications() {
 
 async function renderDashboard(container) {
   // Initial fetch for stats
-  const stats = await window.dashboardService.getDashboardStats();
-  const treatments = await window.treatmentService.getTreatments();
-
-  const activeTreatments = treatments.length || stats.activeTreatments;
-  const totalAnimals = stats.totalAnimals;
-
-  let restrictedCount = 0;
-  // Calculate restricted count based on MRL status
-  treatments.forEach(t => {
-    const medName = t.medicines ? t.medicines.name : t.medicine;
-    const med = mockData.medicines.find(m => m.name === medName);
-    if (med) {
-      const status = getMRLStatus(t.start_date || t.date, med.withdrawalMilk);
-      if (status.status === 'Restricted') restrictedCount++;
-    }
-  });
+  const summary = await window.dashboardService.getDashboardSummary();
+  const mrlAlerts = await window.dashboardService.getMRLAlerts();
 
   const html = `
-    <!-- AMU Summary Cards -->
-    <div id="amu-summary-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-       <!-- Loaded dynamically -->
-    </div>
-
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="glass-panel p-6 hover-card stagger-1 border-l-4 border-l-blue-500">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 font-medium" data-i18n="dashboard.totalAnimals">Total Animals</p>
-            <h3 class="text-3xl font-bold text-gray-800 mt-1">${totalAnimals}</h3>
+            <p class="text-sm text-gray-500 font-medium">Total Live Animals</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-1">${summary.total_live_animals}</h3>
           </div>
           <div class="bg-blue-50 p-2 rounded-lg text-blue-500"><i data-lucide="paw-print"></i></div>
         </div>
       </div>
       
-      <div class="glass-panel p-6 hover-card stagger-2 border-l-4 border-l-purple-500">
+      <div class="glass-panel p-6 hover-card stagger-2 border-l-4 border-l-orange-500">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 font-medium" data-i18n="dashboard.activeTreatments">Active Treatments</p>
-            <h3 class="text-3xl font-bold text-gray-800 mt-1">${activeTreatments}</h3>
+            <p class="text-sm text-gray-500 font-medium">Critical Animals</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-1">${summary.critical_animals}</h3>
           </div>
-          <div class="bg-purple-50 p-2 rounded-lg text-purple-500"><i data-lucide="activity"></i></div>
+          <div class="bg-orange-50 p-2 rounded-lg text-orange-500"><i data-lucide="alert-circle"></i></div>
         </div>
       </div>
 
       <div class="glass-panel p-6 hover-card stagger-3 border-l-4 border-l-red-500">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 font-medium" data-i18n="dashboard.mrlRestricted">MRL Restricted</p>
-            <h3 class="text-3xl font-bold text-gray-800 mt-1">${restrictedCount}</h3>
+            <p class="text-sm text-gray-500 font-medium">Active MRL Alerts</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-1">${summary.active_mrl_alerts}</h3>
           </div>
           <div class="bg-red-50 p-2 rounded-lg text-red-500"><i data-lucide="alert-triangle"></i></div>
         </div>
@@ -264,12 +245,11 @@ async function renderDashboard(container) {
       <div class="glass-panel p-6 hover-card stagger-4 border-l-4 border-l-primary">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 font-medium" data-i18n="dashboard.amuIndex">AMU Index</p>
-            <h3 class="text-3xl font-bold text-gray-800 mt-1" data-i18n="dashboard.safe">Safe</h3>
+            <p class="text-sm text-gray-500 font-medium">Antibiotic Doses</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-1">${summary.total_antibiotic_doses}</h3>
           </div>
-          <div class="bg-emerald-50 p-2 rounded-lg text-primary"><i data-lucide="shield-check"></i></div>
+          <div class="bg-emerald-50 p-2 rounded-lg text-primary"><i data-lucide="flask-conical"></i></div>
         </div>
-        <p class="text-xs text-gray-500 mt-4 flex items-center">Below resistance threshold</p>
       </div>
     </div>
 
@@ -296,7 +276,7 @@ async function renderDashboard(container) {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 glass-panel p-6 slide-up">
         <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-          <h3 class="text-lg font-bold text-gray-800 brand-font" data-i18n="dashboard.amuTrends">AMU Live Analytics</h3>
+          <h3 class="text-lg font-bold text-gray-800 brand-font">AMU Trends Analytics</h3>
           <div class="flex items-center space-x-2">
             <select id="amu-range" class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary">
               <option value="3">Last 3 Months</option>
@@ -313,17 +293,16 @@ async function renderDashboard(container) {
         </div>
         <div id="empty-chart-state" class="hidden flex flex-col justify-center items-center h-72 text-center">
            <div class="bg-gray-50 p-4 rounded-full mb-4 text-gray-400"><i data-lucide="bar-chart-2" class="w-8 h-8"></i></div>
-           <p class="text-gray-500 font-medium">No treatment records available yet.</p>
-           <button class="mt-4 text-primary font-bold text-sm hover:underline" onclick="window.openAddTreatmentModal()">Log first treatment</button>
+           <p class="text-gray-500 font-medium">No trend records available yet.</p>
         </div>
       </div>
       
       <div class="glass-panel p-6 slide-up" style="animation-delay: 0.2s">
-        <h3 class="text-lg font-bold text-gray-800 mb-4 brand-font" data-i18n="dashboard.activeAlerts">Active MRL Alerts</h3>
+        <h3 class="text-lg font-bold text-gray-800 mb-4 brand-font">Active MRL Alerts</h3>
         <div class="space-y-4" id="dashboard-alerts">
           <!-- Alerts generated via JS -->
         </div>
-        <button class="w-full mt-6 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" onclick="document.querySelector('[data-view=\\'mrl\\']').click()" data-i18n="dashboard.viewAll">View All Restrictions</button>
+        <button class="w-full mt-6 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" onclick="document.querySelector('[data-view=\\'mrl\\']').click()">View All Restrictions</button>
       </div>
     </div>
   `;
@@ -335,47 +314,15 @@ async function renderDashboard(container) {
     const loading = document.getElementById('chart-loading');
     const chartContainer = document.getElementById('chart-container');
     const emptyState = document.getElementById('empty-chart-state');
-    const summaryContainer = document.getElementById('amu-summary-cards');
 
     loading.classList.remove('hidden');
     chartContainer.classList.add('hidden');
     emptyState.classList.add('hidden');
 
     const data = await window.dashboardService.getAMUTrends(months);
-
     loading.classList.add('hidden');
 
-    // Summary Cards
-    const antiChangeColor = data.antiChange > 0 ? 'text-red-500' : 'text-emerald-500';
-    const vacChangeColor = data.vacChange >= 0 ? 'text-emerald-500' : 'text-red-500';
-    const antiIcon = data.antiChange > 0 ? 'trending-up' : 'trending-down';
-    const vacIcon = data.vacChange >= 0 ? 'trending-up' : 'trending-down';
-
-    summaryContainer.innerHTML = `
-      <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center space-x-4">
-        <div class="bg-red-50 text-red-500 p-2.5 rounded-lg"><i data-lucide="flask-conical"></i></div>
-        <div>
-          <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Antibiotics</p>
-          <h4 class="text-xl font-bold text-gray-800">${data.totalAntibiotics} doses</h4>
-          <p class="text-[10px] ${antiChangeColor} mt-1 flex items-center font-bold">
-            <i data-lucide="${antiIcon}" class="w-2.5 h-2.5 mr-1"></i> ${Math.abs(data.antiChange)}% vs last month
-          </p>
-        </div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center space-x-4">
-        <div class="bg-emerald-50 text-primary p-2.5 rounded-lg"><i data-lucide="shield-plus"></i></div>
-        <div>
-          <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Vaccinations</p>
-          <h4 class="text-xl font-bold text-gray-800">${data.totalVaccines} doses</h4>
-          <p class="text-[10px] ${vacChangeColor} mt-1 flex items-center font-bold">
-            <i data-lucide="${vacIcon}" class="w-2.5 h-2.5 mr-1"></i> ${Math.abs(data.vacChange)}% vs last month
-          </p>
-        </div>
-      </div>
-    `;
-    if (window.lucide) window.lucide.createIcons();
-
-    if (data.labels.length === 0 || (data.totalAntibiotics === 0 && data.totalVaccines === 0)) {
+    if (!data.labels || data.labels.length === 0) {
       emptyState.classList.remove('hidden');
       return;
     }
@@ -389,20 +336,13 @@ async function renderDashboard(container) {
       type: 'bar',
       data: {
         labels: data.labels,
-        datasets: [
-          {
-            label: 'Antibiotics',
-            data: data.antibiotics,
-            backgroundColor: '#ef4444',
-            borderRadius: 6
-          },
-          {
-            label: 'Vaccines',
-            data: data.vaccines,
-            backgroundColor: '#10b981',
-            borderRadius: 6
-          }
-        ]
+        datasets: [{
+          label: 'Antibiotic Doses',
+          data: data.antibiotics,
+          backgroundColor: '#3b82f6',
+          borderRadius: 8,
+          barThickness: 32
+        }]
       },
       options: {
         responsive: true,
@@ -410,73 +350,52 @@ async function renderDashboard(container) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            titleColor: '#1e293b',
-            bodyColor: '#64748b',
-            borderColor: '#e2e8f0',
-            borderWidth: 1,
+            backgroundColor: '#1e293b',
             padding: 12,
-            cornerRadius: 8,
-            usePointStyle: true,
             callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.formattedValue} doses`
+              label: (ctx) => {
+                const trtCount = data.treatmentCounts[ctx.dataIndex];
+                return [` Doses: ${ctx.formattedValue}`, ` Treatments: ${trtCount}`];
+              }
             }
           }
         },
         scales: {
-          y: {
-            beginAtZero: true,
-            grid: { color: '#f8fafc', drawBorder: false },
-            ticks: { stepSize: 1, color: '#94a3b8', font: { size: 10 } }
-          },
-          x: {
-            grid: { display: false },
-            ticks: { color: '#64748b', font: { size: 10, weight: '600' } }
-          }
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+          x: { grid: { display: false }, ticks: { color: '#64748b' } }
         }
       }
     });
   }
 
-  // Range Listener
-  const rangeSelect = document.getElementById('amu-range');
-  rangeSelect.addEventListener('change', (e) => refreshAMUChart(parseInt(e.target.value)));
-
-  // Initial Chart Render
-  refreshAMUChart(6);
-
-  // Render Alerts (keeping existing logic but ensuring lucide icons work)
+  // Render MRL Alerts
   const alertsContainer = document.getElementById('dashboard-alerts');
-  let alertHtml = '';
-  treatments.forEach(t => {
-    const medName = t.medicines ? t.medicines.name : t.medicine;
-    const med = mockData.medicines.find(m => m.name === medName);
-    if (med) {
-      const dateStr = t.start_date || t.date;
-      const status = getMRLStatus(dateStr, med.withdrawalMilk);
-      if (status.status !== 'Safe') {
-        const tag = t.animals ? t.animals.animal_tag : t.animalId;
-        alertHtml += `
-          <div class="flex items-start p-3 border border-gray-100 rounded-lg bg-white shadow-sm">
-            <div class="${status.status === 'Restricted' ? 'text-red-500 bg-red-50' : 'text-yellow-600 bg-yellow-50'} p-2 rounded-lg mr-3">
-              <i data-lucide="clock" class="w-4 h-4"></i>
-            </div>
-            <div>
-              <p class="text-sm font-bold text-gray-800">${tag} - ${med.name}</p>
-              <p class="text-xs text-gray-500">Milk Safe in: <span class="font-bold ${status.status === 'Restricted' ? 'text-red-500' : 'text-yellow-600'}">${status.remaining} days</span></p>
-            </div>
+  if (mrlAlerts.length === 0) {
+    alertsContainer.innerHTML = '<p class="text-sm text-gray-500">No active restrictions. All products safe for release.</p>';
+  } else {
+    alertsContainer.innerHTML = mrlAlerts.map(a => {
+      const severityColor = a.severity === 'High' ? 'text-red-500 bg-red-50 border-red-100' 
+        : (a.severity === 'Medium' ? 'text-orange-500 bg-orange-50 border-orange-100' : 'text-emerald-500 bg-emerald-50 border-emerald-100');
+      
+      return `
+        <div class="flex flex-col p-4 border border-gray-100 rounded-xl bg-white shadow-sm hover:shadow-md transition-all">
+          <div class="flex justify-between items-start mb-2">
+            <span class="text-sm font-bold text-gray-800">${a.animal_code}</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${severityColor}">${a.severity}</span>
           </div>
-        `;
-      }
-    }
-  });
-  if (!alertHtml) alertHtml = '<p class="text-sm text-gray-500">No active restrictions. All products safe for release.</p>';
-  alertsContainer.innerHTML = alertHtml;
-  if (window.lucide) window.lucide.createIcons();
+          <p class="text-xs text-gray-600 font-medium">${a.medicine_name}</p>
+          <div class="mt-3 flex justify-between items-center text-[10px] text-gray-500 border-t border-gray-50 pt-2">
+            <span>Safe: <span class="font-bold text-emerald-600">${a.safe_release_date}</span></span>
+            <span class="uppercase tracking-widest font-bold ${a.milk_status === 'Safe' ? 'text-emerald-500' : 'text-red-500'}">${a.milk_status}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
   // Health Scanner Update Logic
   async function updateHealthScanner() {
-    const logs = await window.healthService.getLatestHealthLogs();
+    const logs = await window.dashboardService.getLiveHealthLogs();
     const scannerContent = document.getElementById('health-scanner-content');
     if (!scannerContent) {
       clearInterval(window.healthScannerInterval);
@@ -489,41 +408,42 @@ async function renderDashboard(container) {
     }
 
     scannerContent.innerHTML = logs.map(log => {
-      const isFever = parseFloat(log.temperature) > 102.5;
-      const statusColor = isFever ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100';
-      const tempColor = isFever ? 'text-red-600' : 'text-gray-800';
+      const statusColors = {
+        'Healthy': 'bg-emerald-50 text-emerald-600 border-emerald-100',
+        'Normal': 'bg-blue-50 text-blue-600 border-blue-100',
+        'Alert': 'bg-orange-50 text-orange-600 border-orange-100',
+        'Critical': 'bg-red-50 text-red-600 border-red-100'
+      };
+      const statusColor = statusColors[log.status] || 'bg-gray-50 text-gray-600 border-gray-100';
 
       return `
-        <div class="p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-all ${isFever ? 'border-red-200 bg-red-50/10' : 'border-gray-100'}">
+        <div class="p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-all border-gray-100">
           <div class="flex justify-between items-start mb-3">
             <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Animal ID</p>
-              <h4 class="text-base font-bold text-gray-800">${log.animal_id}</h4>
+              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Animal</p>
+              <h4 class="text-base font-bold text-gray-800">${log.animal_code}</h4>
             </div>
             <div class="px-2 py-1 rounded-lg ${statusColor} text-[10px] font-bold border">
-              ${log.status || (isFever ? 'Fever Alert' : 'Normal')}
+              ${log.status}
             </div>
           </div>
           
-          <div class="flex items-center justify-between mt-2">
-            <div class="flex items-center">
-              <div class="p-1.5 rounded-lg ${isFever ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-primary'} mr-2.5">
-                <i data-lucide="thermometer" class="w-4 h-4"></i>
-              </div>
-              <span class="text-xl font-bold ${tempColor}">${log.temperature}°F</span>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="text-center p-2 bg-gray-50 rounded-lg">
+              <p class="text-[8px] text-gray-400 uppercase font-bold">BPM</p>
+              <p class="text-sm font-bold text-gray-800">${log.heart_rate}</p>
             </div>
-            <div class="text-right">
-              <p class="text-[10px] text-gray-400">Last Sync</p>
-              <p class="text-[10px] font-medium text-gray-600">${new Date(log.updated_at).toLocaleTimeString()}</p>
+            <div class="text-center p-2 bg-gray-50 rounded-lg">
+              <p class="text-[8px] text-gray-400 uppercase font-bold">Temp</p>
+              <p class="text-sm font-bold text-gray-800">${log.temperature}°C</p>
+            </div>
+            <div class="text-center p-2 bg-gray-50 rounded-lg">
+              <p class="text-[8px] text-gray-400 uppercase font-bold">Fat</p>
+              <p class="text-sm font-bold text-gray-800">${log.body_fat}%</p>
             </div>
           </div>
-          
-          ${isFever ? `
-            <div class="mt-3 p-2 bg-red-600 text-white rounded-lg flex items-center space-x-2 shadow-sm animate-bounce">
-              <i data-lucide="alert-triangle" class="w-3 h-3 text-white"></i>
-              <span class="text-[10px] font-bold uppercase tracking-wider">Possible Fever</span>
-            </div>
-          ` : ''}
+
+          <p class="text-[9px] text-gray-400 mt-3 text-right">Synced: ${new Date(log.recorded_at).toLocaleTimeString()}</p>
         </div>
       `;
     }).join('');
@@ -533,32 +453,40 @@ async function renderDashboard(container) {
 
   // Initial update
   updateHealthScanner();
+  refreshAMUChart(6);
 
-  // Set auto-refresh
+  // Range Listener
+  const rangeSelect = document.getElementById('amu-range');
+  if (rangeSelect) rangeSelect.addEventListener('change', (e) => refreshAMUChart(parseInt(e.target.value)));
+
+  // Set auto-refresh (10s)
   if (window.healthScannerInterval) clearInterval(window.healthScannerInterval);
-  window.healthScannerInterval = setInterval(updateHealthScanner, 5000);
+  window.healthScannerInterval = setInterval(updateHealthScanner, 10000);
 }
 
 async function renderAnimals(container) {
   const animals = await window.animalService.getAnimals();
 
   let rows = animals.map(a => {
-    const rawStatus = a.health_status || a.status || 'healthy';
+    const rawStatus = a.status || 'Healthy';
     const formattedStatus = rawStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     const statusColor = rawStatus.toLowerCase() === 'healthy' ? 'status-safe'
       : (rawStatus.toLowerCase() === 'observation' ? 'status-warning' : 'status-danger');
+    
+    const tag = a.animal_code || a.animal_tag || a.id;
+    const ageInfo = a.age_months ? `${a.age_months} months` : (a.age || 'N/A');
 
     return `
     <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-      <td class="py-4 px-6 font-medium text-gray-900">${a.animal_tag || a.id}</td>
-      <td class="py-4 px-6 text-gray-600">${a.breed}</td>
-      <td class="py-4 px-6 text-gray-600">${a.age || a.weight}</td>
+      <td class="py-4 px-6 font-medium text-gray-900">${tag}</td>
+      <td class="py-4 px-6 text-gray-600">${a.breed || 'Unknown'}</td>
+      <td class="py-4 px-6 text-gray-600">${ageInfo}</td>
       <td class="py-4 px-6">
         <span class="status-pill ${statusColor}">
           ${formattedStatus}
         </span>
       </td>
-      <td class="py-4 px-6 text-gray-500 text-sm">${a.lastCheck || new Date(a.created_at).toLocaleDateString() || 'N/A'}</td>
+      <td class="py-4 px-6 text-gray-500 text-sm">${new Date(a.created_at).toLocaleDateString() || 'N/A'}</td>
       <td class="py-4 px-6 text-right whitespace-nowrap">
         <button class="bg-emerald-50 text-primary hover:bg-emerald-100 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors shadow-sm" onclick="window.openAddTreatmentModal('${a.id}')">
           <i data-lucide="syringe" class="w-3 h-3 inline-block mr-1"></i> Treat
@@ -571,24 +499,27 @@ async function renderAnimals(container) {
   `}).join('');
 
   let mobileCards = animals.map(a => {
-    const rawStatus = a.health_status || a.status || 'healthy';
+    const rawStatus = a.status || 'Healthy';
     const formattedStatus = rawStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     const statusColor = rawStatus.toLowerCase() === 'healthy' ? 'status-safe'
       : (rawStatus.toLowerCase() === 'observation' ? 'status-warning' : 'status-danger');
+    
+    const tag = a.animal_code || a.animal_tag || a.id;
+    const ageInfo = a.age_months ? `${a.age_months} months` : (a.age || 'N/A');
 
     return `
     <div class="bg-white p-4 border-b border-gray-100 flex flex-col space-y-3">
       <div class="flex justify-between items-start">
         <div>
-          <h4 class="font-bold text-gray-900 text-base">${a.animal_tag || a.id}</h4>
-          <p class="text-sm text-gray-500">${a.breed} • ${a.age || a.weight}</p>
+          <h4 class="font-bold text-gray-900 text-base">${tag}</h4>
+          <p class="text-sm text-gray-500">${a.breed || 'Unknown'} • ${ageInfo}</p>
         </div>
         <span class="status-pill ${statusColor} text-[10px] py-0.5 px-2">
           ${formattedStatus}
         </span>
       </div>
       <div class="flex justify-between items-center text-xs text-gray-500 border-t border-gray-50 pt-2">
-        <span>Last Check: ${a.lastCheck || new Date(a.created_at).toLocaleDateString() || 'N/A'}</span>
+        <span>Added: ${new Date(a.created_at).toLocaleDateString() || 'N/A'}</span>
         <div class="flex space-x-2">
           <button class="text-red-400 hover:text-red-600 p-2" onclick="if(confirm('Are you sure you want to remove this animal?')) window.animalService.deleteAnimal('${a.id}').then(() => document.querySelector('[data-view=\\'animals\\']').click())">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -981,19 +912,6 @@ async function renderProfile(container) {
 }
 
 // Global modal functions
-window.openAddTreatmentModal = async function (preselectedAnimalId = null) {
-  const container = document.getElementById('modal-container');
-
-  // Show loading state first
-  container.innerHTML = `
-    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 fade-in">
-      <div class="bg-white rounded-2xl shadow-xl p-8 m-4 flex justify-center items-center">
-        <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-primary"></i>
-      </div>
-    </div>
-  `;
-  if (window.lucide) window.lucide.createIcons();
-
 window.openAddTreatmentModal = async function (preselectedAnimalId) {
   const container = document.getElementById('modal-container');
   
